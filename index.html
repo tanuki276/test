@@ -2,12 +2,129 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>こんにちは Vercel!</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Tomato Man</title>
+  <style>
+    body { font-family: sans-serif;
+padding: 20px; background: #f4f4f4; }
+    textarea { width: 100%; height: 80px; margin-bottom: 10px; font-size: 1.2em;
+}
+    button { padding: 10px 20px; font-size: 1em; margin-right: 10px;
+}
+    #output { font-size: 1.4em; background: #fff; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap;
+}
+  </style>
 </head>
 <body>
-  <h1>ようこそ！</h1>
-  <p>これはVercel用のテストページです。</p>
+  <h2>Tomato Man</h2>
+  <p>ひらがなまたはコードを入力して、変換・逆変換してください。</p>
+  <textarea id="input" placeholder="ここにひらがなかコードを入力"></textarea><br />
+  <button onclick="encode()">変換（ひらがな→コード）</button>
+  <button onclick="decode()">逆変換（コード→ひらがな）</button>
+  <div id="output"></div>
+
+  <script>
+    // 独自コード体系対応マップ
+    // 母音は数字、子音は英字、拗音はq＋子音＋数字
+
+    // ひらがな→コードマップ
+    const kanaToCodeMap = {
+      // 母音単独
+      'あ':'064','い':'3728','う':'03412','え':'769','お':'4257',
+      'ぁ':'64','ぃ':'65','ぅ':'66','ぇ':'67','ぉ':'68',
+
+      'か':'561','き':'562','く':'563','け':'564','こ':'565',
+      'さ':'777','し':'778','す':'779','せ':'780','そ':'701',
+      'た':'12','ち':'13','つ':'14','て':'15','と':'16',
+      'な':'803','に':'804','ぬ':'805','ね':'806','の':'807',
+      'は':'972','ひ':'973','ふ':'974','へ':'975','ほ':'976',
+   
+    'ま':'80','み':'81','む':'82','め':'83','も':'84',
+      'や':'1834','ゆ':'1835','よ':'1836',
+      'ら':'864','り':'865','る':'866','れ':'867','ろ':'868',
+      'わ':'934 ','を':'935',
+
+      // 濁音
+      'が':'5610','ぎ':'5611','ぐ':'5612','げ':'5613','ご':'5614',
+      'ざ':'7770','じ':'7771','ず':'7772','ぜ':'7773','ぞ':'7774',
+      'だ':'120','ぢ':'121','づ':'122','で':'123','ど':'124',
+      'ば':'9720','び':'9721','ぶ':'9722','べ':'9723','ぼ':'9724',
+      'ぱ':'9725','ぴ':'9726','ぷ':'9727','ぺ':'9728','ぽ':'9729',
+
+      // 拗音（q + 子音 + 母音）
+      'きゃ':'56100','きゅ':'56101','きょ':'56102',
+      'しゃ':'77700','しゅ':'77701','しょ':'77702',
+      'ちゃ':'1200','ちゅ':'1201','ちょ':'1202',
+      'にゃ':'8030','にゅ':'8031','にょ':'8032',
+      'ひゃ':'9720','ひゅ':'9721','ひょ':'9722',
+ 
+    'みゃ':'800','みゅ':'801','みょ':'802',
+      'りゃ':'8640','りゅ':'8641','りょ':'8642',
+      'ぎゃ':'561000','ぎゅ':'561001','ぎょ':'561002',
+      'じゃ':'777000','じゅ':'777001','じょ':'777002',
+      'ぢゃ':'12000','ぢゅ':'12001','ぢょ':'12003',
+      'びゃ':'97200','びゅ':'9721','びょ':'9722',
+      'ぴゃ':'9723','ぴゅ':'9724','ぴょ':'9725',
+
+      'っ':'1',
+      'ゃ':'2',
+      'ゅ':'3',
+      'ょ':'4',
+
+      // 長音・特殊
+      'ー':'5',
+      'ん':'6',
+    };
+    // コード→ひらがなマップ（自動生成）
+    const codeToKanaMap = {};
+    for (const [k, v] of Object.entries(kanaToCodeMap)) {
+      codeToKanaMap[v] = k;
+    }
+
+    // エンコード：ひらがな→コード
+    // 拗音は2文字以上なので長い順に優先置換
+    function encode() {
+      let input = document.getElementById('input').value.trim();
+      // 最長一致で置換するために、キーを長さの降順でソート
+      const sortedKanaKeys = Object.keys(kanaToCodeMap).sort((a, b) => b.length - a.length);
+
+      for (const kana of sortedKanaKeys) {
+        // 正規表現を使ってグローバルに置換
+        // gフラグで全てのマッチを置換、新しいRegExpオブジェクトを作成
+        input = input.replace(new RegExp(kana, 'g'), kanaToCodeMap[kana]);
+      }
+
+      let output = '';
+      for(let ch of input){
+        // sortedKanaKeysで全て置換済みなので、基本的にkanaToCodeMap[ch]はundefinedになる
+        // よって、そのまま追加する
+        output += ch;
+      }
+
+      document.getElementById('output').textContent = output;
+    }
+
+    // デコード：コード→ひらがな
+    // q[a-z][0-9]、[a-z][0-9]、数字、n、x、r などに分割して置換
+    function decode() {
+      let input = document.getElementById('input').value.trim();
+
+      // 正規表現でコードトークンに分割
+      // q[a-z][0-9] (拗音), [a-z][0-9] (子音+母音), [a-z] (n, x, rなど), [0-9] (母音単独)
+      // より正確に長いものからマッチさせるためにパターンを調整
+      const tokens = input.match(/q[a-z][0-9]|[a-z][0-9]|[a-z]|[0-9]/g) ||
+[];
+
+      let output = '';
+      for(const token of tokens){
+        if(codeToKanaMap[token]){
+          output += codeToKanaMap[token];
+        } else {
+          output += '?';
+        }
+      }
+
+      document.getElementById('output').textContent = output;
+    }
+  </script>
 </body>
 </html>
