@@ -3,7 +3,6 @@ const KEY = [12, 85, 230, 47, 99, 150, 203, 77];
 
 // --- ひらがなコード候補（全体版例） ---
 const kanaCodeCandidates = {
-  // 通常のひらがな
   'あ': ['064', '460', '604'],
   'い': ['3728', '8372', '2837'],
   'う': ['03412', '12340', '43021'],
@@ -50,8 +49,6 @@ const kanaCodeCandidates = {
   'わ': ['w036', 'w063', 'w360'],
   'を': ['w147', 'w174', 'w471'],
   'ん': ['x6', 'x7', 'x8'],
-
-  // 濁点
   'が': ['g561', 'g615', 'g156'],
   'ぎ': ['g562', 'g652', 'g256'],
   'ぐ': ['g763', 'g637', 'g376'],
@@ -72,15 +69,11 @@ const kanaCodeCandidates = {
   'ぶ': ['b470', 'b407', 'b074'],
   'べ': ['b581', 'b518', 'b815'],
   'ぼ': ['b692', 'b629', 'b296'],
-
-  // 半濁点
   'ぱ': ['p258', 'p285', 'p528'],
   'ぴ': ['p369', 'p396', 'p639'],
   'ぷ': ['p470', 'p407', 'p074'],
   'ぺ': ['p581', 'p518', 'p815'],
   'ぽ': ['p692', 'p629', 'p296'],
-
-  // 小文字
   'ぁ': ['a01', 'a10', 'a11'],
   'ぃ': ['i02', 'i20', 'i22'],
   'ぅ': ['u03', 'u30', 'u33'],
@@ -94,22 +87,22 @@ const kanaCodeCandidates = {
 
 // 逆マップ（コード→ひらがな）
 const codeToKanaMap = {};
-for(const [kana, codes] of Object.entries(kanaCodeCandidates)){
-  for(const code of codes){
+for (const [kana, codes] of Object.entries(kanaCodeCandidates)) {
+  for (const code of codes) {
     codeToKanaMap[code] = kana;
   }
 }
 
-// --- 入力の正規化 ---
-function normalizeInput(str){
+// 入力の正規化
+function normalizeInput(str) {
   return str.normalize('NFC').trim();
 }
 
-// --- ひらがな→コード（複数候補からランダム選択） ---
-function encodeKanaRandom(input){
-  let codes = [];
-  for(const ch of input){
-    if(kanaCodeCandidates[ch]){
+// ひらがな→コード（ランダム選択）
+function encodeKanaRandom(input) {
+  const codes = [];
+  for (const ch of input) {
+    if (kanaCodeCandidates[ch]) {
       const arr = kanaCodeCandidates[ch];
       const choice = arr[Math.floor(Math.random() * arr.length)];
       codes.push(choice);
@@ -120,47 +113,37 @@ function encodeKanaRandom(input){
   return codes.join('');
 }
 
-// --- XOR暗号化 ---
-function xorEncrypt(str){
+// XOR暗号化
+function xorEncrypt(str) {
   const bytes = [];
-  for(let i=0; i<str.length; i++){
+  for (let i = 0; i < str.length; i++) {
     bytes.push(str.charCodeAt(i));
   }
-  const encrypted = bytes.map((b,i) => b ^ KEY[i % KEY.length]);
+  const encrypted = bytes.map((b, i) => b ^ KEY[i % KEY.length]);
   return encrypted.map(b => ('0' + b.toString(16)).slice(-2)).join('');
 }
 
-// --- エンコード全体処理（ノイズ除去） ---
-function fullEncode(input){
-  const normalized = normalizeInput(input);
-  const rawCode = encodeKanaRandom(normalized);
-  const encrypted = xorEncrypt(rawCode);
-  // ノイズ挿入を削除（復号しやすく）
-  return encrypted;
-}
-
-// --- XOR復号 ---
-function xorDecrypt(hexStr){
+// XOR復号
+function xorDecrypt(hexStr) {
   const bytes = [];
-  for(let i=0; i<hexStr.length; i+=2){
+  for (let i = 0; i < hexStr.length; i += 2) {
     bytes.push(parseInt(hexStr.substr(i, 2), 16));
   }
-  const decrypted = bytes.map((b,i) => b ^ KEY[i % KEY.length]);
+  const decrypted = bytes.map((b, i) => b ^ KEY[i % KEY.length]);
   return String.fromCharCode(...decrypted);
 }
 
-// --- 復号用最長一致コード分割 ---
-function splitCodes(codeStr){
+// コード分割
+function splitCodes(codeStr) {
   const codes = [];
-  let i=0;
-  // 最大長5文字までの候補
-  const codeLengths = [5,4,3];
-  while(i < codeStr.length){
+  let i = 0;
+  const codeLengths = [5, 4, 3];
+  while (i < codeStr.length) {
     let matched = false;
-    for(const len of codeLengths){
-      if(i+len <= codeStr.length){
-        const sub = codeStr.substring(i, i+len);
-        if(codeToKanaMap[sub]){
+    for (const len of codeLengths) {
+      if (i + len <= codeStr.length) {
+        const sub = codeStr.substring(i, i + len);
+        if (codeToKanaMap[sub]) {
           codes.push(sub);
           i += len;
           matched = true;
@@ -168,8 +151,7 @@ function splitCodes(codeStr){
         }
       }
     }
-    if(!matched){
-      // 不明コードは1文字ずつ進む
+    if (!matched) {
       codes.push(codeStr[i]);
       i++;
     }
@@ -177,27 +159,55 @@ function splitCodes(codeStr){
   return codes;
 }
 
-// --- 復号全体処理 ---
-function fullDecode(input){
+// エンコード全体処理
+function fullEncode(input) {
+  const normalized = normalizeInput(input);
+  const rawCode = encodeKanaRandom(normalized);
+  const encrypted = xorEncrypt(rawCode);
+  return encrypted;
+}
+
+// 復号全体処理
+function fullDecode(input) {
   let decrypted;
   try {
     decrypted = xorDecrypt(input);
-  } catch(e) {
+  } catch (e) {
     return '⚠️ 復号エラー: 入力が不正な16進文字列です';
   }
 
-  // コード分割
   const codes = splitCodes(decrypted);
-
-  // 逆変換
   let result = '';
-  for(const c of codes){
-    if(codeToKanaMap[c]){
+  for (const c of codes) {
+    if (codeToKanaMap[c]) {
       result += codeToKanaMap[c];
     } else {
-      // 不明コードは [?] で表示
       result += '[?]';
     }
   }
   return result;
 }
+
+// UI操作のイベントハンドラ
+window.addEventListener('DOMContentLoaded', () => {
+  const encodeBtn = document.getElementById('encodeBtn');
+  const decodeBtn = document.getElementById('decodeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const input = document.getElementById('input');
+  const output = document.getElementById('output');
+
+  encodeBtn.addEventListener('click', () => {
+    const res = fullEncode(input.value);
+    output.textContent = res;
+  });
+
+  decodeBtn.addEventListener('click', () => {
+    const res = fullDecode(input.value);
+    output.textContent = res;
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    output.textContent = '';
+  });
+});
