@@ -2,173 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Tomato Man</title>
+  <title>Tomato Man - 大強化版暗号</title>
   <style>
-    body { 
-      font-family: sans-serif;
-      padding: 20px; 
-      background: #f4f4f4; 
-    }
-    textarea { 
-      width: 100%; 
-      height: 80px; 
-      margin-bottom: 10px; 
-      font-size: 1.2em;
-      padding: 5px;
-    }
-    button { 
-      padding: 10px 20px; 
-      font-size: 1em; 
-      margin-right: 10px;
-      cursor: pointer;
-    }
-    #output { 
-      font-size: 1.4em; 
-      background: #fff; 
-      padding: 10px; 
-      border: 1px solid #ccc; 
-      white-space: pre-wrap;
-      margin-top: 20px;
-      min-height: 50px;
-    }
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    textarea { width: 100%; height: 80px; font-size: 1.2em; padding: 5px; margin-bottom: 10px; }
+    button { padding: 10px 20px; font-size: 1em; margin-right: 10px; cursor: pointer; }
+    #output { font-size: 1.2em; background: #fff; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; min-height: 50px; margin-top: 20px; color: black;}
   </style>
 </head>
 <body>
   <h2>Tomato Man</h2>
-  <p>ひらがなまたはコードを入力して、変換・逆変換してください。</p>
-  <textarea id="input" placeholder="ここにひらがなかコードを入力"></textarea><br />
-  <button onclick="encode()">変換（ひらがな→コード）</button>
-  <button onclick="decode()">逆変換（コード→ひらがな）</button>
+  <p>ひらがなを入力して「変換」を押すと、強力な暗号化コードが生成されます。復号は「逆変換」ボタンを使用してください。</p>
+  <textarea id="input" placeholder="ここにひらがなを入力"></textarea><br />
+  <button id="encodeBtn">変換（ひらがな→暗号コード）</button>
+  <button id="decodeBtn">逆変換（暗号コード→ひらがな）</button>
+  <button id="clearBtn">クリア</button>
   <div id="output"></div>
 
-  <script>
-    // 独自コード体系対応マップ
-    // 母音は数字、子音は英字、拗音はq＋子音＋数字など。
-    // コードは長さにばらつきを持たせ、デコード時の識別を容易にするため、
-    // 空白区切りを前提とし、コード自体も明確に区別できる形に再調整しました。
-
-    const kanaToCodeMap = {
-      // **最長一致を考慮し、長いキーから定義**
-      // 母音単独 (数字のみ) - あなたの元のコードに合わせる
-      'う':'03412', // 5桁
-      'い':'3728',  // 4桁
-      'お':'4257',  // 4桁
-      'え':'769',   // 3桁
-      'あ':'064',   // 3桁
-
-      'ぁ':'06',    // 小さい文字は短く
-      'ぃ':'37',
-      'ぅ':'03',
-      'ぇ':'76',
-      'ぉ':'42',
-
-      // 拗濁音・拗半濁音 (q + 子音識別子 + g/p + 数字) - 長いため先に
-      'ぎゃ':'qg561000','ぎゅ':'qg561001','ぎょ':'qg561002',
-      'じゃ':'qz777000','じゅ':'qz777001','じょ':'qz777002',
-      'ぢゃ':'qd12000','ぢゅ':'qd12001','ぢょ':'qd12003',
-      'びゃ':'qb97200','びゅ':'qb9721','びょ':'qb9722',
-      'ぴゃ':'qp9723','ぴゅ':'qp9724','ぴょ':'qp9725',
-      
-      // 拗音（q + 子音識別子 + 数字）
-      'きゃ':'q56100','きゅ':'q56101','きょ':'q56102',
-      'しゃ':'q77700','しゅ':'q77701','しょ':'q77702',
-      'ちゃ':'q1200','ちゅ':'q1201','ちょ':'q1202',
-      'にゃ':'q8030','にゅ':'q8031','にょ':'q8032',
-      'ひゃ':'q9720','ひゅ':'q9721','ひょ':'q9722',
-      'みゃ':'q800','みゅ':'q801','みょ':'q802',
-      'りゃ':'q8640','りゅ':'q8641','りょ':'q8642',
-
-      // 濁音・半濁音 (子音識別子 + g/p + 数字)
-      'が':'kg5610','ぎ':'kg5611','ぐ':'kg5612','げ':'kg5613','ご':'kg5614',
-      'ざ':'zg7770','じ':'zg7771','ず':'zg7772','ぜ':'zg7773','ぞ':'zg7774',
-      'だ':'dg120','ぢ':'dg121','づ':'dg122','で':'dg123','ど':'dg124',
-      'ば':'bg9720','び':'bg9721','ぶ':'bg9722','べ':'bg9723','ぼ':'bg9724',
-      'ぱ':'pg9725','ぴ':'pg9726','ぷ':'pg9727','ぺ':'pg9728','ぽ':'pg9729',
-
-      // 子音＋母音 (子音識別子 + 数字)
-      'か':'k561','き':'k562','く':'k563','け':'k564','こ':'k565',
-      'さ':'s777','し':'s778','す':'s779','せ':'s780','そ':'s781',
-      'た':'t12','ち':'t13','つ':'t14','て':'t15','と':'t16',
-      'な':'n803','に':'n804','ぬ':'n805','ね':'n806','の':'n807',
-      'は':'h972','ひ':'h973','ふ':'h974','へ':'h975','ほ':'h976',
-      'ま':'m80','み':'m81','む':'m82','め':'m83','も':'m84',
-      'や':'y1834','ゆ':'y1835','よ':'y1836',
-      'ら':'r864','り':'r865','る':'r866','れ':'r867','ろ':'r868',
-      'わ':'w934','を':'w935',
-      
-      // 促音・撥音・小文字 (x + 数字)
-      'っ':'x1',
-      'ん':'x6',
-      'ゃ':'x2',
-      'ゅ':'x3',
-      'ょ':'x4',
-
-      // 長音・空白・句読点など (文字名)
-      'ー':'chouon',
-      ' ':'space',
-      '、':'comma','。':'period',
-      '？':'question','！':'exclamation',
-      '，':'comma_full','．':'period_full', 
-      '／':'slash', //スラッシュも追加
-    };
-
-    // コード→ひらがなマップ（自動生成）
-    const codeToKanaMap = {};
-    for (const [kana, code] of Object.entries(kanaToCodeMap)) {
-      codeToKanaMap[code] = kana;
-    }
-
-    // ソートされたひらがなキー（長いものから順にマッチさせるため）
-    const sortedKanaKeys = Object.keys(kanaToCodeMap).sort((a, b) => b.length - a.length);
-
-    // エンコード：ひらがな→コード
-    function encode() {
-      let input = document.getElementById('input').value;
-      let encodedOutput = [];
-      let i = 0;
-      
-      while (i < input.length) {
-        let matched = false;
-        // sortedKanaKeys を使って、現在の位置から最も長くマッチするひらがなを探す
-        for (const kana of sortedKanaKeys) {
-          if (input.substring(i, i + kana.length) === kana) {
-            encodedOutput.push(kanaToCodeMap[kana]);
-            i += kana.length;
-            matched = true;
-            break; // マッチしたら次の文字へ
-          }
-        }
-        
-        // どのひらがなともマッチしなかった場合（マップにない文字など）
-        if (!matched) {
-          // マップにない文字はそのまま追加（またはエラー表示）
-          encodedOutput.push(`[${input[i]}]`); 
-          i++;
-        }
-      }
-      // 各コードをスペースで連結して出力
-      document.getElementById('output').textContent = encodedOutput.join(' ');
-    }
-
-    // デコード：コード→ひらがな
-    function decode() {
-      let input = document.getElementById('input').value;
-      let output = '';
-      
-      // 空白でコードトークンに分割
-      const tokens = input.trim().split(/\s+/).filter(token => token !== ''); // 空のトークンを除外
-
-      for(const token of tokens){
-        if(codeToKanaMap[token]){
-          output += codeToKanaMap[token];
-        } else {
-          // マップにない未知のコードの場合、デバッグ用に[トークン]と表示
-          output += `[${token}]`; 
-        }
-      }
-
-      document.getElementById('output').textContent = output;
-    }
-  </script>
+  <script src="tomatoManCipher.js"></script>
 </body>
 </html>
