@@ -161,7 +161,7 @@ function splitCodes(codeStr) {
   const codes = [];
   let i = 0;
   // 5→4→3文字長のコード長優先順
-  const codeLengths = [5, 4, 3];
+  const codeLengths = [5, 4, 3, 2];
   while (i < codeStr.length) {
     let matched = false;
     for (const len of codeLengths) {
