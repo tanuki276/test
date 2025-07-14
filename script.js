@@ -1,8 +1,8 @@
 // --- 鍵定義 ---
 const KEY = [12, 85, 230, 47, 99, 150, 203, 77];
 
-// --- ひらがなコード候補（全体版例） ---
-const kanaCodeCandidates = {
+// --- ひらがなコード候補（重複含む） ---
+const kanaCodeCandidatesRaw = {
   'あ': ['064', '460', '604'],
   'い': ['3728', '8372', '2837'],
   'う': ['03412', '12340', '43021'],
@@ -54,8 +54,8 @@ const kanaCodeCandidates = {
   'ぐ': ['g763', 'g637', 'g376'],
   'げ': ['g874', 'g748', 'g487'],
   'ご': ['g985', 'g859', 'g598'],
-  'ざ': ['z777', 'z777', 'z777'],
-  'じ': ['z778', 'z778', 'z778'],
+  'ざ': ['z777', 'z777', 'z777'],  // 重複だらけなので除去される
+  'じ': ['z778', 'z778', 'z778'],  // 同上
   'ず': ['z779', 'z797', 'z977'],
   'ぜ': ['z880', 'z808', 'z088'],
   'ぞ': ['z991', 'z919', 'z199'],
@@ -84,6 +84,29 @@ const kanaCodeCandidates = {
   'ょ': ['y03', 'y30', 'y33'],
   'っ': ['t00', 't99', 't88'],
 };
+
+// 重複コードを排除しつつ候補を生成
+function removeDuplicateCodes(candidates) {
+  const usedCodes = new Set();
+  const cleaned = {};
+  for (const [kana, codes] of Object.entries(candidates)) {
+    cleaned[kana] = [];
+    for (const code of codes) {
+      if (!usedCodes.has(code)) {
+        cleaned[kana].push(code);
+        usedCodes.add(code);
+      }
+    }
+    // 候補が空なら仮コードを入れる
+    if (cleaned[kana].length === 0) {
+      cleaned[kana].push(`x${kana.charCodeAt(0)}`);
+      usedCodes.add(`x${kana.charCodeAt(0)}`);
+    }
+  }
+  return cleaned;
+}
+
+const kanaCodeCandidates = removeDuplicateCodes(kanaCodeCandidatesRaw);
 
 // 逆マップ（コード→ひらがな）
 const codeToKanaMap = {};
@@ -133,10 +156,11 @@ function xorDecrypt(hexStr) {
   return String.fromCharCode(...decrypted);
 }
 
-// コード分割
+// コード分割（長いコードから優先してマッチング）
 function splitCodes(codeStr) {
   const codes = [];
   let i = 0;
+  // 5→4→3文字長のコード長優先順
   const codeLengths = [5, 4, 3];
   while (i < codeStr.length) {
     let matched = false;
@@ -152,6 +176,7 @@ function splitCodes(codeStr) {
       }
     }
     if (!matched) {
+      // マッチしない場合は1文字ずつ進む（エラー回避）
       codes.push(codeStr[i]);
       i++;
     }
@@ -172,7 +197,7 @@ function fullDecode(input) {
   let decrypted;
   try {
     decrypted = xorDecrypt(input);
-  } catch (e) {
+  } catch {
     return '⚠️ 復号エラー: 入力が不正な16進文字列です';
   }
 
