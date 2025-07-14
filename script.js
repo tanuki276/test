@@ -161,7 +161,7 @@ function xorDecrypt(hexStr) {
 function splitCodes(codeStr) {
   const codes = [];
   let i = 0;
-  // 5→4→3文字長のコード長優先順
+  // 5→4→3→2文字長のコード長優先順
   const codeLengths = [5, 4, 3, 2];
   while (i < codeStr.length) {
     let matched = false;
@@ -222,18 +222,39 @@ window.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('input');
   const output = document.getElementById('output');
 
+  // コピー用ボタンを作成
+  const copyBtn = document.createElement('button');
+  copyBtn.textContent = '結果をコピー';
+  copyBtn.style.marginTop = '10px';
+  copyBtn.style.padding = '6px 12px';
+  copyBtn.style.fontSize = '1em';
+  copyBtn.style.cursor = 'pointer';
+  copyBtn.style.display = 'none'; // 初期は非表示
+  output.parentNode.insertBefore(copyBtn, output.nextSibling);
+
+  copyBtn.addEventListener('click', () => {
+    const text = output.textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text)
+      .then(() => alert('コピーしました！'))
+      .catch(() => alert('コピーに失敗しました'));
+  });
+
   encodeBtn.addEventListener('click', () => {
     const res = fullEncode(input.value);
     output.textContent = res;
+    copyBtn.style.display = 'inline-block'; // ボタン表示
   });
 
   decodeBtn.addEventListener('click', () => {
     const res = fullDecode(input.value);
     output.textContent = res;
+    copyBtn.style.display = 'inline-block'; // ボタン表示
   });
 
   clearBtn.addEventListener('click', () => {
     input.value = '';
     output.textContent = '';
+    copyBtn.style.display = 'none'; // ボタン非表示
   });
 });
