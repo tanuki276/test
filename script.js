@@ -53,6 +53,7 @@ function analyzeAIStyle(text) {
     const complexConnectors = ["その一方で", "したがって", "具体的には"];
     const complexConnectorCount = countPhrases(text, complexConnectors);
     aiScore += complexConnectorCount * 5;
+  }
 
   if (typeof analyzeSentenceEndVariety === "function") {
     const sentenceEndVariety = analyzeSentenceEndVariety(text);
