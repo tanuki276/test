@@ -2,7 +2,7 @@
 let tokenizer = null;
 kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/" }).build(function (err, _tokenizer) {
     if (err) {
-        console.error("kuromoji.jsの初期化に失敗しました:", err);
+        console.error("ライブラリの初期化に失敗しました:", err);
         return;
     }
     tokenizer = _tokenizer;
