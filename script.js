@@ -1,10 +1,9 @@
-const MAX_SCORE = 21;
-
 function analyzeAIStyle(text) {
+  const length = text.length || 1;
   const punctuationCount = (text.match(/、/g) || []).length;
   const spaceCount = (text.match(/ /g) || []).length;
   const newlineCount = (text.match(/\n/g) || []).length;
-  const length = text.length || 1;
+
   const punctuationRate = punctuationCount / length;
   const spaceRate = spaceCount / length;
   const newlineRate = newlineCount / length;
@@ -24,25 +23,34 @@ function analyzeAIStyle(text) {
 
   const bracketsCount = (text.match(/[（）]/g) || []).length;
 
-  const hasKanjiNum = /[一二三四五六七八九十]/.test(text);
-  const hasArabicNum = /[0-9]/.test(text);
+  const hasKanjiNum = /[一二三四五六七八九十]/.test(text) ? 1 : 0;
+  const hasArabicNum = /[0-9]/.test(text) ? 1 : 0;
   const mixedNumber = hasKanjiNum && hasArabicNum ? 1 : 0;
 
-  const rawScore =
-    punctuationRate * 3 +
-    spaceRate * 3 +
-    newlineRate * 3 +
-    connectorCount * 2 +
-    sentenceEndSet.size * 1.5 +
-    bracketsCount * 1 +
-    mixedNumber * 2;
+  // マークダウン記号
+  const markdownSymbols = /[#*_`>-]/g;
+  const markdownCount = (text.match(markdownSymbols) || []).length;
+  const markdownRate = markdownCount / length;
 
-  const aiPercent = Math.min(100, (rawScore / MAX_SCORE) * 100);
-  const humanPercent = 100 - aiPercent;
+  let aiScore = 50;
+
+  aiScore += punctuationRate * 30;
+  aiScore += spaceRate * 30;
+  aiScore += newlineRate * 30;
+  aiScore += connectorCount * 4;
+  aiScore += sentenceEndSet.size * 3;
+  aiScore += bracketsCount * 2;
+  aiScore += mixedNumber * 5;
+  aiScore += markdownRate * 40;
+
+  if (aiScore > 100) aiScore = 100;
+  if (aiScore < 0) aiScore = 0;
+
+  const humanScore = 100 - aiScore;
 
   return {
-    aiPercent: aiPercent.toFixed(1),
-    humanPercent: humanPercent.toFixed(1),
+    aiPercent: aiScore.toFixed(1),
+    humanPercent: humanScore.toFixed(1),
   };
 }
 
@@ -53,9 +61,7 @@ document.getElementById("analyzeBtn").addEventListener("click", () => {
     return;
   }
   const result = analyzeAIStyle(text);
-
   document.getElementById("aiScore").textContent = result.aiPercent;
   document.getElementById("humanScore").textContent = result.humanPercent;
-
   document.getElementById("result").style.display = "block";
 });
