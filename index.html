@@ -38,7 +38,11 @@
     border-radius: 4px;
     cursor: pointer;
   }
-  button:hover {
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
     background-color: #004a99;
   }
   .result {
@@ -66,39 +70,13 @@
 <body>
   <h1>AI文章判定サイト</h1>
   <textarea id="inputText" placeholder="ここに文章を入力してください"></textarea>
-  <button id="analyzeBtn">判定する</button>
+  <button id="analyzeBtn" disabled>形態素解析準備中...</button>
 
   <div id="result" class="result" style="display:none;">
     <p>AI生成度：<span class="score ai" id="aiScore"></span>%</p>
     <p>人間度：<span class="score human" id="humanScore"></span>%</p>
   </div>
 
-  <script>
-    document.getElementById('analyzeBtn').addEventListener('click', () => {
-      const inputText = document.getElementById('inputText').value.trim();
-      if (!inputText) {
-        alert('文章を入力してください');
-        return;
-      }
-
-      kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' }).build((err, tokenizer) => {
-        if (err) {
-          console.error(err);
-          alert('形態素解析の初期化に失敗しました');
-          return;
-        }
-        const tokens = tokenizer.tokenize(inputText);
-
-        const total = tokens.length;
-        const nounCount = tokens.filter(t => t.pos === '名詞').length;
-        const aiScore = Math.min(100, Math.round((nounCount / total) * 150));
-        const humanScore = 100 - aiScore;
-
-        document.getElementById('aiScore').textContent = aiScore;
-        document.getElementById('humanScore').textContent = humanScore;
-        document.getElementById('result').style.display = 'block';
-      });
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
