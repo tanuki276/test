@@ -7,38 +7,27 @@ const progressText = document.getElementById('progress-text');
 
 // 読み込み中のプログレスバーをアニメーションさせる関数
 function animateProgressBar() {
-    let progress = 0;
     progressContainer.style.display = 'block';
-    const interval = setInterval(() => {
-        progress += 5;
-        if (progress > 95) {
-            clearInterval(interval);
+    
+    let progress = 0;
+    const update = () => {
+        // 95%で一旦止めて、完了を待つ
+        if (progress < 95) {
+            progress += Math.random() * 2; // 0から2の間でランダムに増加
+            if (progress > 95) progress = 95;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `ライブラリをダウンロードしています... ${Math.floor(progress)}%`;
+            requestAnimationFrame(update); // 次のフレームで再実行
         }
-        progressBar.style.width = `${progress}%`;
-        progressText.textContent = `ライブラリをダウンロードしています... ${progress}%`;
-    }, 200);
-    return interval;
+    };
+    requestAnimationFrame(update);
 }
 
 // kuromoji.jsの初期化
 analyzeBtn.textContent = '辞書ダウンロード中...';
-const progressInterval = animateProgressBar();
-
-// kuromoji.jsのビルドを開始
-let buildTimeout = setTimeout(() => {
-    // 5秒経っても処理が完了しない場合、エラーと見なす
-    if (!tokenizer) {
-        clearInterval(progressInterval);
-        analyzeBtn.textContent = '初期化失敗: 辞書ファイルのダウンロードに失敗した可能性があります。';
-        analyzeBtn.disabled = true;
-        progressContainer.style.display = 'none';
-        console.error('kuromoji.jsの辞書ファイルのダウンロードがタイムアウトしました。ネットワークを確認してください。');
-    }
-}, 5000); // タイムアウトを5秒に設定
+animateProgressBar();
 
 kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' }).build(function (err, _tokenizer) {
-    clearTimeout(buildTimeout); // 成功したらタイムアウトをクリア
-    clearInterval(progressInterval);
     if (err) {
         console.error('ライブラリの初期化に失敗しました:', err);
         analyzeBtn.textContent = '初期化失敗';
