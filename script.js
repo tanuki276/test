@@ -1,16 +1,45 @@
 // kuromoji.jsの初期化を一度だけ実行
 let tokenizer = null;
 const analyzeBtn = document.getElementById('analyzeBtn');
+const progressContainer = document.getElementById('progress-container');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+
+// 読み込み中のプログレスバーをアニメーションさせる関数
+function animateProgressBar() {
+    let progress = 0;
+    progressContainer.style.display = 'block';
+    const interval = setInterval(() => {
+        progress += 5;
+        if (progress > 95) {
+            clearInterval(interval);
+        }
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `ライブラリをダウンロードしています... ${progress}%`;
+    }, 200);
+    return interval;
+}
+
+// kuromoji.jsの初期化
+analyzeBtn.textContent = '辞書ダウンロード中...';
+const progressInterval = animateProgressBar();
 
 kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' }).build(function (err, _tokenizer) {
+    clearInterval(progressInterval);
     if (err) {
         console.error('ライブラリの初期化に失敗しました:', err);
         analyzeBtn.textContent = '初期化失敗';
+        progressContainer.style.display = 'none';
         return;
     }
     tokenizer = _tokenizer;
+    progressBar.style.width = '100%';
+    progressText.textContent = `ライブラリのダウンロードは一度だけです。準備完了！`;
     analyzeBtn.textContent = '判定する';
     analyzeBtn.disabled = false;
+    setTimeout(() => {
+        progressContainer.style.display = 'none';
+    }, 2000); // 完了メッセージを2秒間表示
 });
 
 // 形態素をカウントするヘルパー関数
@@ -60,7 +89,6 @@ function analyzeAIStyle(text) {
         };
         const weight = weights[key] || 1;
         aiScore += value * weight;
-        // 短すぎる文章の調整
         if (text.length < 50) aiScore += 10;
     };
 
@@ -86,7 +114,7 @@ function analyzeAIStyle(text) {
     addScore('bracketsCount', bracketsCount > 2 ? 1 : -1, text);
     addScore('mixedNumber', mixedNumber > 0 ? 1 : -1, text);
     addScore('markdownRate', markdownRate > 0.01 ? 1 : -1, text);
-    
+
     // 2. 形態素解析による高度な分析
     const morphemes = tokenizer.tokenize(text);
     if (morphemes && morphemes.length > 10) {
@@ -106,14 +134,14 @@ function analyzeAIStyle(text) {
         const sentenceEndVariety = analyzeSentenceEndVariety(text);
         if (sentenceEndVariety < 3) addScore('sentenceEndVariety', 1, text);
         else addScore('sentenceEndVariety', -1, text);
-        
+
         const complexConnectors = ["その一方で", "したがって", "具体的には", "一般的に"];
         const complexConnectorCount = countPhrases(text, complexConnectors);
         addScore('complexConnectors', complexConnectorCount > 0 ? 1 : -1, text);
     } else {
         addScore('shortText', 1, text);
     }
-    
+
     // スコアの最終調整
     aiScore = Math.max(0, Math.min(100, aiScore));
     const humanScore = 100 - aiScore;
