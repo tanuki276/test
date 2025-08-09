@@ -3,10 +3,8 @@ function analyzeAIStyle(text) {
 
   const punctuationCount = (text.match(/、/g) || []).length;
   const spaceCount = (text.match(/ /g) || []).length;
-  const newlineCount = (text.match(/\n/g) || []).length;
   const punctuationRate = punctuationCount / length;
   const spaceRate = spaceCount / length;
-  const newlineRate = newlineCount / length;
 
   const connectors = ["しかし", "だから", "つまり", "そして", "ところで"];
   let connectorCount = 0;
@@ -34,7 +32,6 @@ function analyzeAIStyle(text) {
 
   aiScore += punctuationRate * 30;
   aiScore += spaceRate * 30;
-  aiScore += newlineRate * 30;
   aiScore += connectorCount * 4;
   aiScore += sentenceEndSet.size * 3;
   aiScore += bracketsCount * 2;
