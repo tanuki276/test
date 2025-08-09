@@ -1,11 +1,13 @@
-const MAX_SCORE = 18;
+const MAX_SCORE = 21;
 
 function analyzeAIStyle(text) {
   const punctuationCount = (text.match(/、/g) || []).length;
   const spaceCount = (text.match(/ /g) || []).length;
+  const newlineCount = (text.match(/\n/g) || []).length;
   const length = text.length || 1;
   const punctuationRate = punctuationCount / length;
   const spaceRate = spaceCount / length;
+  const newlineRate = newlineCount / length;
 
   const connectors = ["しかし", "だから", "つまり", "そして", "ところで"];
   let connectorCount = 0;
@@ -28,7 +30,8 @@ function analyzeAIStyle(text) {
 
   const rawScore =
     punctuationRate * 3 +
-    spaceRate * 3 +   // ここで空白の割合も加算
+    spaceRate * 3 +
+    newlineRate * 3 +
     connectorCount * 2 +
     sentenceEndSet.size * 1.5 +
     bracketsCount * 1 +
