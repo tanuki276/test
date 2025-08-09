@@ -30,22 +30,22 @@ function analyzeAIStyle(text) {
 
   let aiScore = 50;
 
-  aiScore += punctuationRate * 30;
-  aiScore += spaceRate * 30;
-  aiScore += connectorCount * 4;
-  aiScore += sentenceEndSet.size * 3;
-  aiScore += bracketsCount * 2;
-  aiScore += mixedNumber * 5;
-  aiScore += markdownRate * 40;
+  aiScore += punctuationRate * 15;
+  aiScore += spaceRate * 15;
+  aiScore += connectorCount * 2;
+  aiScore += sentenceEndSet.size * 1.5;
+  aiScore += bracketsCount * 1;
+  aiScore += mixedNumber * 3;
+  aiScore += markdownRate * 10;
 
   if (typeof runMorphologicalAnalysis === "function") {
     const morphemes = runMorphologicalAnalysis(text);
     if (morphemes && morphemes.length) {
       const nounRate = countMorpheme(morphemes, '名詞') / morphemes.length;
-      if (nounRate > 0.3) aiScore += 5;
+      if (nounRate > 0.3) aiScore -= 5;
 
       const particleUsage = analyzeParticleUsage(morphemes);
-      if (particleUsage.has('について') && particleUsage.rate('によって') > 0.05) aiScore += 10;
+      if (particleUsage.has('について') && particleUsage.rate('によって') > 0.05) aiScore -= 10;
     }
   }
 
@@ -53,6 +53,10 @@ function analyzeAIStyle(text) {
     const complexConnectors = ["その一方で", "したがって", "具体的には"];
     const complexConnectorCount = countPhrases(text, complexConnectors);
     aiScore += complexConnectorCount * 5;
+
+    const idioms = ["猫の手も借りたい", "雨後の筍"];
+    const idiomCount = countPhrases(text, idioms);
+    if (idiomCount === 0) aiScore += 15;
   }
 
   if (typeof analyzeSentenceEndVariety === "function") {
