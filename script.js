@@ -29,39 +29,55 @@ function analyzeAIStyle(text) {
   const markdownRate = markdownCount / length;
 
   let aiScore = 50;
+  let scoreChange = 0;
 
-  aiScore += punctuationRate * 15;
-  aiScore += spaceRate * 15;
-  aiScore += connectorCount * 2;
-  aiScore += sentenceEndSet.size * 1.5;
-  aiScore += bracketsCount * 1;
-  aiScore += mixedNumber * 3;
-  aiScore += markdownRate * 10;
+  const addScore = (val) => {
+    aiScore += val;
+    scoreChange += val;
+  };
+
+  addScore(punctuationRate * 15);
+  addScore(spaceRate * 15);
+  addScore(connectorCount * 2);
+  addScore(sentenceEndSet.size * 1.5);
+  addScore(bracketsCount * 1);
+  addScore(mixedNumber * 3);
+  addScore(markdownRate * 10);
 
   if (typeof runMorphologicalAnalysis === "function") {
     const morphemes = runMorphologicalAnalysis(text);
     if (morphemes && morphemes.length) {
       const nounRate = countMorpheme(morphemes, '名詞') / morphemes.length;
-      if (nounRate > 0.3) aiScore -= 5;
+
+      // AIっぽい名詞率が高いと加点（AI度アップ）
+      if (nounRate > 0.3) addScore(5);
+      // 人間らしい名詞率なら減点（AI度ダウン）
+      else if (nounRate > 0.1 && nounRate <= 0.3) addScore(-5);
 
       const particleUsage = analyzeParticleUsage(morphemes);
-      if (particleUsage.has('について') && particleUsage.rate('によって') > 0.05) aiScore -= 10;
+      if (particleUsage.has('について') && particleUsage.rate('によって') > 0.05) addScore(10);
     }
   }
 
   if (typeof countPhrases === "function") {
     const complexConnectors = ["その一方で", "したがって", "具体的には"];
     const complexConnectorCount = countPhrases(text, complexConnectors);
-    aiScore += complexConnectorCount * 5;
+    addScore(complexConnectorCount * 5);
 
     const idioms = ["猫の手も借りたい", "雨後の筍"];
     const idiomCount = countPhrases(text, idioms);
-    if (idiomCount === 0) aiScore += 15;
+    if (idiomCount > 0) addScore(-10); // 慣用句あれば減点→人間らしい
+    else addScore(15);
   }
 
   if (typeof analyzeSentenceEndVariety === "function") {
     const sentenceEndVariety = analyzeSentenceEndVariety(text);
-    aiScore += sentenceEndVariety * 3;
+    // 文末のバリエーション多いほど人間らしい → AI度減点
+    addScore(-sentenceEndVariety * 5);
+  }
+
+  if (scoreChange === 0) {
+    addScore(-20);
   }
 
   if (aiScore > 100) aiScore = 100;
@@ -74,15 +90,3 @@ function analyzeAIStyle(text) {
     humanPercent: humanScore.toFixed(1),
   };
 }
-
-document.getElementById("analyzeBtn").addEventListener("click", () => {
-  const text = document.getElementById("inputText").value.trim();
-  if (!text) {
-    alert("文章を入力してください");
-    return;
-  }
-  const result = analyzeAIStyle(text);
-  document.getElementById("aiScore").textContent = result.aiPercent;
-  document.getElementById("humanScore").textContent = result.humanPercent;
-  document.getElementById("result").style.display = "block";
-});
