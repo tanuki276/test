@@ -24,7 +24,20 @@ function animateProgressBar() {
 analyzeBtn.textContent = '辞書ダウンロード中...';
 const progressInterval = animateProgressBar();
 
+// kuromoji.jsのビルドを開始
+let buildTimeout = setTimeout(() => {
+    // 5秒経っても処理が完了しない場合、エラーと見なす
+    if (!tokenizer) {
+        clearInterval(progressInterval);
+        analyzeBtn.textContent = '初期化失敗: 辞書ファイルのダウンロードに失敗した可能性があります。';
+        analyzeBtn.disabled = true;
+        progressContainer.style.display = 'none';
+        console.error('kuromoji.jsの辞書ファイルのダウンロードがタイムアウトしました。ネットワークを確認してください。');
+    }
+}, 5000); // タイムアウトを5秒に設定
+
 kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' }).build(function (err, _tokenizer) {
+    clearTimeout(buildTimeout); // 成功したらタイムアウトをクリア
     clearInterval(progressInterval);
     if (err) {
         console.error('ライブラリの初期化に失敗しました:', err);
@@ -39,7 +52,7 @@ kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' 
     analyzeBtn.disabled = false;
     setTimeout(() => {
         progressContainer.style.display = 'none';
-    }, 2000); // 完了メッセージを2秒間表示
+    }, 2000);
 });
 
 // 形態素をカウントするヘルパー関数
