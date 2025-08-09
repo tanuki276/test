@@ -24,7 +24,7 @@ function animateProgressBar() {
 }
 
 // kuromoji.jsの初期化
-analyzeBtn.textContent = '辞書ダウンロード中...';
+analyzeBtn.textContent = '準備中...';
 animateProgressBar();
 
 kuromoji.builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' }).build(function (err, _tokenizer) {
