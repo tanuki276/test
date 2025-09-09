@@ -126,6 +126,15 @@ function render(filter=''){
     wikiLink.target = '_blank';
     wikiLink.className = 'wiki-link';
 
+    // データを見るボタンの追加
+    const dataBtn = document.createElement('button');
+    dataBtn.textContent = 'データを見る';
+    dataBtn.addEventListener('click', () => {
+      renderCompareTable([it]); // 選択した項目1つだけを渡して表示
+      COMPARE_MODAL.style.display = 'flex';
+    });
+    actions.appendChild(dataBtn);
+
     // 地図表示ボタン
     if (it.lat && it.lng) {
       const mapBtn = document.createElement('button');
@@ -227,7 +236,8 @@ COMPARE_BTN.addEventListener('click', () => {
         alert('比較する項目を選択してください。');
         return;
     }
-    renderCompareTable();
+    const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
+    renderCompareTable(selectedData);
     COMPARE_MODAL.style.display = 'flex';
 });
 
@@ -243,9 +253,8 @@ window.addEventListener('click', (e) => {
 });
 
 // 比較表のレンダリング
-function renderCompareTable() {
-    const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
-    if (selectedData.length === 0) {
+function renderCompareTable(items) {
+    if (items.length === 0) {
         COMPARE_TABLE_CONTAINER.innerHTML = '<p>選択された項目がありません。</p>';
         return;
     }
@@ -265,7 +274,7 @@ function renderCompareTable() {
     thead.appendChild(headerRow);
 
     // データ行の作成
-    selectedData.forEach(item => {
+    items.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${item.title}</td>
