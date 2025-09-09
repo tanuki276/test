@@ -3,32 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>日本が関与した主要な戦争・事変・武装衝突の記録</title>
+  <title>日本史の戦争・事変・紛争年表</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <div class="topline">
       <div>
-        <h1>日本が関与した主要な戦争・事変・武装衝突の記録</h1>
-        <p class="lead">古代から現代に至るまで、日本政府・軍、あるいはそれに準ずる勢力が関与した主要な武力衝突や事変を詳細に解説します。</p>
+        <h1>日本史の戦争・事変・紛争年表</h1>
+        <p class="lead">古代から現代に至るまでの、日本が関与した主な戦争、事変、紛争を詳細にまとめた年表。</p>
       </div>
-      <div style="text-align:right;color:var(--muted)">歴史的概観と分析</div>
+      <div style="text-align:right;color:var(--muted)">詳細解説付き</div>
     </div>
   </header>
   <main class="container">
     <div class="controls">
-      <input id="q" type="text" placeholder="検索（タイトルや時代でフィルタ）">
-      <button id="reset">全て表示</button>
-      <button id="export" class="primary">JSONでエクスポート</button>
+      <input id="q" type="text" placeholder="検索">
+      <button id="export" class="primary">選択した項目をJSONでエクスポート</button>
       <button id="print">印刷</button>
     </div>
-    <div class="hint">項目名をクリックすると詳細欄が編集可能。内容は参考用。追記・修正は自由。</div>
-
+    <div class="hint">項目名をクリックすると詳細欄が編集可能。</div>
     <div id="list" class="grid" aria-live="polite"></div>
   </main>
   <footer>
-    <div>記載されている年号は主要な活動期間を示します。簡潔化のため一部の出来事は代表年のみ記載しています。</div>
+    <div>年号は主要な活動期間を示す。簡潔化のため一部の出来事は代表年のみ記載。</div>
   </footer>
   <script src="script.js"></script>
 </body>
