@@ -94,13 +94,15 @@ function render(filter=''){
     const det = document.createElement('div');
     det.className='details';
     det.dataset.id = it.id;
-    det.innerHTML = (saved[it.id] && saved[it.id].desc) ? saved[it.id].desc : it.desc;
+    // サニタイズ処理の追加
+    const rawContent = (saved[it.id] && saved[it.id].desc) ? saved[it.id].desc : it.desc;
+    det.innerHTML = DOMPurify.sanitize(rawContent);
 
     det.addEventListener('focusout', ()=>{
       const id = det.dataset.id;
       const content = det.innerHTML;
       saved[id] = saved[id] || {};
-      saved[id].desc = content;
+      saved[id].desc = DOMPurify.sanitize(content); // サニタイズして保存
       saved[id].title = it.title;
       saveAll(saved);
       det.removeAttribute('contenteditable');
@@ -277,10 +279,10 @@ function renderCompareTable(items) {
     items.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${item.title}</td>
-            <td>${item.year}</td>
-            <td>${item.vs || '不明'}</td>
-            <td>${item.casualties || '不明'}</td>
+            <td>${DOMPurify.sanitize(item.title)}</td>
+            <td>${DOMPurify.sanitize(item.year)}</td>
+            <td>${DOMPurify.sanitize(item.vs || '不明')}</td>
+            <td>${DOMPurify.sanitize(item.casualties || '不明')}</td>
         `;
         tbody.appendChild(row);
     });
@@ -305,7 +307,7 @@ EXPORT_BUTTON.addEventListener('click', ()=>{
     const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
     const out = selectedData.map(it => {
         const savedContent = saved[it.id] ? saved[it.id].desc : it.desc;
-        const plainText = savedContent.replace(/<[^>]+>/g, '').trim();
+        const plainText = DOMPurify.sanitize(savedContent).replace(/<[^>]+>/g, '').trim(); // サニタイズしてエクスポート
         return {
             id: it.id,
             title: it.title,
