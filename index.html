@@ -1,34 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>日本史の戦争・事変・紛争年表</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本の戦乱年表</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="topline">
-      <div>
-        <h1>日本史の戦争・事変・紛争年表</h1>
-        <p class="lead">古代から現代に至るまでの、日本が関与した主な戦争、事変、紛争を詳細にまとめた年表。</p>
-      </div>
-      <div style="text-align:right;color:var(--muted)">詳細解説付き</div>
-    </div>
-  </header>
-  <main class="container">
-    <div class="controls">
-      <input id="q" type="text" placeholder="検索（タイトルか年代でフィルタ）">
-      <button id="export" class="primary">選択した項目をJSONでエクスポート</button>
-      <button id="print">印刷</button>
-    </div>
-    <div class="hint">項目名をクリックすると詳細欄が編集可能。</div>
+
+<header>
+    <h1>日本の戦乱年表</h1>
+    <p>過去から現代までの主要な戦い、事件、紛争を時系列でまとめています。</p>
+</header>
+
+<main>
+    <section id="search-section">
+        <input type="text" id="q" placeholder="キーワードや年号で検索">
+        <button id="export">選択項目をJSONでエクスポート</button>
+        <button id="print">印刷</button>
+        <button id="compare-btn">比較する</button>
+    </section>
+
     <div id="tag-buttons"></div>
-    <div id="list" class="grid" aria-live="polite"></div>
-  </main>
-  <footer>
-    <div>年号は主要な活動期間を示す。簡潔化のため一部の出来事は代表年のみ記載。</div>
-  </footer>
-  <script src="script.js"></script>
+    
+    <section id="list"></section>
+</main>
+
+<footer>
+    <p>© 2024 日本の戦乱年表</p>
+</footer>
+
+<div id="compare-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h2>比較表</h2>
+        <div id="compare-table-container"></div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMap"></script>
+
 </body>
 </html>
