@@ -135,20 +135,30 @@ function render(filter=''){
         if (mapContainer.style.display === 'block') {
           mapContainer.style.display = 'none';
           mapBtn.textContent = '地図を見る';
+          // 地図インスタンスを削除
+          if (maps[it.id]) {
+            maps[it.id].remove();
+            delete maps[it.id];
+          }
         } else {
           mapContainer.style.display = 'block';
           mapBtn.textContent = '地図を閉じる';
           if (!maps[it.id]) {
-            const map = new google.maps.Map(mapContainer, {
-              center: {lat: it.lat, lng: it.lng},
-              zoom: it.zoom || 8,
-            });
-            new google.maps.Marker({
-              position: {lat: it.lat, lng: it.lng},
-              map: map,
-              title: it.title,
-            });
+            // Leafletマップの初期化
+            const map = L.map(mapContainer).setView([it.lat, it.lng], it.zoom || 8);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19,
+              attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            // マーカーの追加
+            L.marker([it.lat, it.lng]).addTo(map)
+              .bindPopup(it.title)
+              .openPopup();
+            
             maps[it.id] = map;
+            // 地図が非表示のコンテナに初期化されるとタイルが正常にロードされないことがあるため、手動でサイズ変更を通知
+            setTimeout(() => { map.invalidateSize(); }, 100);
           }
         }
       });
