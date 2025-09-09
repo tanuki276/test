@@ -7,6 +7,11 @@
   --text-primary: #e6eef8;
   --text-secondary: #dbeafe;
   --highlight: #ffd6d6;
+  --tag-bg: #4b5563;
+  --tag-border: #6b7280;
+  --tag-text: #e5e7eb;
+  --tag-active-bg: #eab308;
+  --tag-active-text: #2c2c2c;
 }
 
 * {
@@ -78,6 +83,34 @@ button.primary {
   background: linear-gradient(90deg, var(--accent), #ff9a9a);
   color: #071024;
   border: none;
+}
+
+#tag-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#tag-buttons button {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--tag-border);
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+}
+
+#tag-buttons button:hover {
+  background: #6b7280;
+}
+
+#tag-buttons button.active {
+  background: var(--tag-active-bg);
+  color: var(--tag-active-text);
+  border-color: var(--tag-active-bg);
+  font-weight: bold;
 }
 
 .grid {
