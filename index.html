@@ -18,11 +18,12 @@
   </header>
   <main class="container">
     <div class="controls">
-      <input id="q" type="text" placeholder="検索">
+      <input id="q" type="text" placeholder="検索（タイトルか年代でフィルタ）">
       <button id="export" class="primary">選択した項目をJSONでエクスポート</button>
       <button id="print">印刷</button>
     </div>
     <div class="hint">項目名をクリックすると詳細欄が編集可能。</div>
+    <div id="tag-buttons"></div>
     <div id="list" class="grid" aria-live="polite"></div>
   </main>
   <footer>
