@@ -9,7 +9,7 @@ const CLOSE_BTN = document.querySelector('.close-btn');
 const COMPARE_TABLE_CONTAINER = document.getElementById('compare-table-container');
 
 let activeTag = null;
-let maps = {}; // 地図インスタンスを格納するオブジェクト
+let maps = {};
 
 function loadSaved(){
   try{ const raw = localStorage.getItem('wars_notes_v11'); if(!raw) return {}; return JSON.parse(raw); }catch(e){return {}} }
@@ -17,6 +17,11 @@ function saveAll(data){ localStorage.setItem('wars_notes_v11', JSON.stringify(da
 const saved = loadSaved();
 
 function renderTags() {
+  // WARS_DATAが未定義の場合は処理をスキップ
+  if (typeof WARS_DATA === 'undefined') {
+    return;
+  }
+  
   const allTags = WARS_DATA.reduce((acc, it) => {
     if (it.tags) {
       it.tags.forEach(tag => acc.add(tag));
@@ -45,6 +50,11 @@ function renderTags() {
 }
 
 function render(filter=''){
+  // WARS_DATAが未定義の場合は処理をスキップ
+  if (typeof WARS_DATA === 'undefined') {
+    return;
+  }
+
   LIST.innerHTML='';
   const f = filter.trim().toLowerCase();
 
@@ -94,7 +104,6 @@ function render(filter=''){
     const det = document.createElement('div');
     det.className='details';
     det.dataset.id = it.id;
-    // サニタイズ処理の追加
     const rawContent = (saved[it.id] && saved[it.id].desc) ? saved[it.id].desc : it.desc;
     det.innerHTML = DOMPurify.sanitize(rawContent);
 
@@ -102,7 +111,7 @@ function render(filter=''){
       const id = det.dataset.id;
       const content = det.innerHTML;
       saved[id] = saved[id] || {};
-      saved[id].desc = DOMPurify.sanitize(content); // サニタイズして保存
+      saved[id].desc = DOMPurify.sanitize(content);
       saved[id].title = it.title;
       saveAll(saved);
       det.removeAttribute('contenteditable');
@@ -121,23 +130,20 @@ function render(filter=''){
     const actions = document.createElement('div');
     actions.className='actions';
 
-    // Wikipediaへのリンクボタン
     const wikiLink = document.createElement('a');
     wikiLink.href = `https://ja.wikipedia.org/wiki/${encodeURIComponent(it.wiki)}`;
     wikiLink.textContent = 'Wikipediaで詳細を見る';
     wikiLink.target = '_blank';
     wikiLink.className = 'wiki-link';
 
-    // データを見るボタンの追加
     const dataBtn = document.createElement('button');
     dataBtn.textContent = 'データを見る';
     dataBtn.addEventListener('click', () => {
-      renderCompareTable([it]); // 選択した項目1つだけを渡して表示
+      renderCompareTable([it]);
       COMPARE_MODAL.style.display = 'flex';
     });
     actions.appendChild(dataBtn);
 
-    // 地図表示ボタン
     if (it.lat && it.lng) {
       const mapBtn = document.createElement('button');
       mapBtn.textContent = '地図を見る';
@@ -146,7 +152,6 @@ function render(filter=''){
         if (mapContainer.style.display === 'block') {
           mapContainer.style.display = 'none';
           mapBtn.textContent = '地図を見る';
-          // 地図インスタンスを削除
           if (maps[it.id]) {
             maps[it.id].remove();
             delete maps[it.id];
@@ -155,20 +160,17 @@ function render(filter=''){
           mapContainer.style.display = 'block';
           mapBtn.textContent = '地図を閉じる';
           if (!maps[it.id]) {
-            // Leafletマップの初期化
             const map = L.map(mapContainer).setView([it.lat, it.lng], it.zoom || 8);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19,
               attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(map);
 
-            // マーカーの追加
             L.marker([it.lat, it.lng]).addTo(map)
               .bindPopup(it.title)
               .openPopup();
             
             maps[it.id] = map;
-            // 地図が非表示のコンテナに初期化されるとタイルが正常にロードされないことがあるため、手動でサイズ変更を通知
             setTimeout(() => { map.invalidateSize(); }, 100);
           }
         }
@@ -178,7 +180,6 @@ function render(filter=''){
 
     actions.appendChild(wikiLink);
 
-    // 因果関係リンク
     if (it.relations && it.relations.length > 0) {
       it.relations.forEach(rel => {
         const relBtn = document.createElement('button');
@@ -216,7 +217,7 @@ function render(filter=''){
       if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('.actions')) {
         return;
       }
-      e.stopPropagation(); // 重複選択防止
+      e.stopPropagation();
 
       const isSelected = selectedItems.has(it.id);
       if (isSelected) {
@@ -232,7 +233,6 @@ function render(filter=''){
   });
 }
 
-// 比較ボタンの処理
 COMPARE_BTN.addEventListener('click', () => {
     if (selectedItems.size === 0) {
         alert('比較する項目を選択してください。');
@@ -243,7 +243,6 @@ COMPARE_BTN.addEventListener('click', () => {
     COMPARE_MODAL.style.display = 'flex';
 });
 
-// モーダルを閉じる処理
 CLOSE_BTN.addEventListener('click', () => {
     COMPARE_MODAL.style.display = 'none';
 });
@@ -254,7 +253,6 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// 比較表のレンダリング
 function renderCompareTable(items) {
     if (items.length === 0) {
         COMPARE_TABLE_CONTAINER.innerHTML = '<p>選択された項目がありません。</p>';
@@ -265,7 +263,6 @@ function renderCompareTable(items) {
     const thead = document.createElement('thead');
     const tbody = document.createElement('tbody');
 
-    // ヘッダー行の作成
     const headerRow = document.createElement('tr');
     headerRow.innerHTML = `
         <th>項目名</th>
@@ -275,7 +272,6 @@ function renderCompareTable(items) {
     `;
     thead.appendChild(headerRow);
 
-    // データ行の作成
     items.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -293,7 +289,6 @@ function renderCompareTable(items) {
     COMPARE_TABLE_CONTAINER.appendChild(table);
 }
 
-
 Q.addEventListener('input', ()=> render(Q.value));
 
 document.getElementById('print').addEventListener('click', ()=> window.print());
@@ -307,7 +302,7 @@ EXPORT_BUTTON.addEventListener('click', ()=>{
     const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
     const out = selectedData.map(it => {
         const savedContent = saved[it.id] ? saved[it.id].desc : it.desc;
-        const plainText = DOMPurify.sanitize(savedContent).replace(/<[^>]+>/g, '').trim(); // サニタイズしてエクスポート
+        const plainText = DOMPurify.sanitize(savedContent).replace(/<[^>]+>/g, '').trim();
         return {
             id: it.id,
             title: it.title,
@@ -327,6 +322,15 @@ EXPORT_BUTTON.addEventListener('click', ()=>{
     URL.revokeObjectURL(url);
 });
 
-// 初期レンダリング
-renderTags();
-render();
+// DOMContentLoadedイベントリスナーを追加
+// DOMが完全に読み込まれ、スクリプトが利用可能になった後で初期表示を実行
+window.addEventListener('DOMContentLoaded', (event) => {
+    // WARS_DATAが利用可能か確認（script.jsの読み込み待ち）
+    if (typeof WARS_DATA !== 'undefined') {
+        renderTags();
+        render();
+    } else {
+        // もしWARS_DATAが外部ファイルで非同期に読み込まれる場合は、その読み込み完了を待つ処理が必要
+        // 例: fetch() APIを使用
+    }
+});
