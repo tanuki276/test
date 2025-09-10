@@ -1,4 +1,4 @@
-Document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     // HTML要素の取得
     const levelSelectionContainer = document.getElementById('level-selection-container');
     const quizContainer = document.getElementById('quiz-container');
@@ -26,17 +26,19 @@ Document.addEventListener('DOMContentLoaded', () => {
 
     // 配列をシャッフルする関数
     function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
+        let newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
         }
-        return array;
+        return newArray;
     }
 
     // 問題を生成する関数 (修正版)
     function createQuizQuestions(numQuestions) {
-        const shuffledData = shuffleArray([...allQuestions]).slice(0, numQuestions);
+        const shuffledData = shuffleArray(allQuestions).slice(0, numQuestions);
         const newQuizQuestions = [];
+
         shuffledData.forEach(correctItem => {
             const choices = [correctItem];
             const otherItems = allQuestions.filter(item => item.id !== correctItem.id);
@@ -95,13 +97,12 @@ Document.addEventListener('DOMContentLoaded', () => {
             button.dataset.id = choice.id;
             choicesContainer.appendChild(button);
         });
-
-        // クリックイベントの再設定
+        
         choicesContainer.removeEventListener('click', handleAnswer);
         choicesContainer.addEventListener('click', handleAnswer);
     }
 
-    // 回答を処理する関数 (修正版)
+    // 回答を処理する関数 
     function handleAnswer(e) {
         const selectedButton = e.target.closest('.choice-button');
         if (!selectedButton) return;
@@ -120,7 +121,6 @@ Document.addEventListener('DOMContentLoaded', () => {
             if (correctButton) {
                 correctButton.classList.add('correct');
             }
-            // 連続正解が途切れた場合のみ、ベスト記録を更新
             if (correctAnswersInRow > bestStreak) {
                 bestStreak = correctAnswersInRow;
                 localStorage.setItem('bestStreak', bestStreak);
@@ -131,7 +131,6 @@ Document.addEventListener('DOMContentLoaded', () => {
         streakCountDisplay.textContent = `現在の連続正解記録: ${correctAnswersInRow}`;
         bestStreakCountDisplay.textContent = `過去最高の記録: ${bestStreak}`;
 
-        // 次の問題へ進むための遅延
         setTimeout(() => {
             currentQuestionIndex++;
             displayQuestion();
@@ -145,9 +144,8 @@ Document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 結果を表示する関数 (修正版)
+    // 結果を表示する関数 
     function showResult() {
-        // クイズ終了時に連続記録を更新
         if (correctAnswersInRow > bestStreak) {
             bestStreak = correctAnswersInRow;
             localStorage.setItem('bestStreak', bestStreak);
