@@ -167,5 +167,4 @@ document.addEventListener('DOMContentLoaded', () => {
         resultContainer.classList.add('hidden');
         levelSelectionContainer.classList.remove('hidden');
     });
-
 });
