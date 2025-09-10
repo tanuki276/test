@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+Document.addEventListener('DOMContentLoaded', () => {
     // HTML要素の取得
     const levelSelectionContainer = document.getElementById('level-selection-container');
     const quizContainer = document.getElementById('quiz-container');
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuestionIndex = 0;
     let correctAnswersInRow = 0;
     let totalQuestions;
-    
+
     // ローカルストレージから記録をロード
     let bestStreak = localStorage.getItem('bestStreak') ? parseInt(localStorage.getItem('bestStreak')) : 0;
     bestStreakCountDisplay.textContent = `過去最高の記録: ${bestStreak}`;
@@ -33,13 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return array;
     }
 
-    // 問題を生成する関数
+    // 問題を生成する関数 (修正版)
     function createQuizQuestions(numQuestions) {
-        const shuffledData = shuffleArray([...allQuestions]);
+        const shuffledData = shuffleArray([...allQuestions]).slice(0, numQuestions);
         const newQuizQuestions = [];
         shuffledData.forEach(correctItem => {
-            if (newQuizQuestions.length >= numQuestions) return;
-
             const choices = [correctItem];
             const otherItems = allQuestions.filter(item => item.id !== correctItem.id);
             const shuffledOtherItems = shuffleArray(otherItems);
@@ -50,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     choices.push(shuffledOtherItems[i]);
                 }
             }
-            
+
             newQuizQuestions.push({
                 question: `「${correctItem.title}」について、最も適切な説明はどれ？`,
                 correctId: correctItem.id,
@@ -84,12 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showResult();
             return;
         }
-        
+
         resetState();
         const currentQuiz = quizQuestions[currentQuestionIndex];
         questionText.textContent = currentQuiz.question;
         currentQuestionInfo.textContent = `第 ${currentQuestionIndex + 1} 問 / 全 ${totalQuestions} 問`;
-        
+
         currentQuiz.choices.forEach(choice => {
             const button = document.createElement('button');
             button.textContent = choice.title;
@@ -98,19 +96,22 @@ document.addEventListener('DOMContentLoaded', () => {
             choicesContainer.appendChild(button);
         });
 
+        // クリックイベントの再設定
+        choicesContainer.removeEventListener('click', handleAnswer);
         choicesContainer.addEventListener('click', handleAnswer);
     }
 
-    // 回答を処理する関数
+    // 回答を処理する関数 (修正版)
     function handleAnswer(e) {
         const selectedButton = e.target.closest('.choice-button');
         if (!selectedButton) return;
-        
+
         choicesContainer.removeEventListener('click', handleAnswer);
         const selectedId = parseInt(selectedButton.dataset.id);
         const currentQuiz = quizQuestions[currentQuestionIndex];
-        
-        if (selectedId === currentQuiz.correctId) {
+        let isCorrect = (selectedId === currentQuiz.correctId);
+
+        if (isCorrect) {
             selectedButton.classList.add('correct');
             correctAnswersInRow++;
         } else {
@@ -119,16 +120,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (correctButton) {
                 correctButton.classList.add('correct');
             }
-            // 連続正解が途切れた
+            // 連続正解が途切れた場合のみ、ベスト記録を更新
             if (correctAnswersInRow > bestStreak) {
                 bestStreak = correctAnswersInRow;
                 localStorage.setItem('bestStreak', bestStreak);
-                bestStreakCountDisplay.textContent = `過去最高の記録: ${bestStreak}`;
             }
             correctAnswersInRow = 0;
         }
 
         streakCountDisplay.textContent = `現在の連続正解記録: ${correctAnswersInRow}`;
+        bestStreakCountDisplay.textContent = `過去最高の記録: ${bestStreak}`;
 
         // 次の問題へ進むための遅延
         setTimeout(() => {
@@ -144,9 +145,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 結果を表示する関数
+    // 結果を表示する関数 (修正版)
     function showResult() {
-        // 全問正解で連続記録を更新
+        // クイズ終了時に連続記録を更新
         if (correctAnswersInRow > bestStreak) {
             bestStreak = correctAnswersInRow;
             localStorage.setItem('bestStreak', bestStreak);
@@ -155,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quizContainer.classList.add('hidden');
         resultContainer.classList.remove('hidden');
         resultText.textContent = `クイズ終了！`;
-        correctCountDisplay.textContent = `あなたの連続正解記録は ${correctAnswersInRow} です。`;
+        correctCountDisplay.textContent = `今回のあなたの連続正解記録は ${correctAnswersInRow} です。`;
         bestStreakCountDisplay.textContent = `過去最高の記録: ${bestStreak}`;
     }
 
