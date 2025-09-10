@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bestStreakCountDisplay = document.getElementById('best-streak-count');
     const levelButtons = document.querySelectorAll('.level-button');
 
+    // main.jsに定義されたWARS_DATAを使用
     let allQuestions = WARS_DATA;
     let quizQuestions = [];
     let currentQuestionIndex = 0;
