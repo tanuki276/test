@@ -1,0 +1,95 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e9ecef;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    color: #343a40;
+}
+
+.container {
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 700px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #495057;
+    margin-top: 0;
+}
+
+/* レベル選択エリア */
+.level-buttons, .choices-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.level-button, .choice-button, #restart-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 18px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.level-button:hover, .choice-button:hover, #restart-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+}
+
+.choice-button {
+    background-color: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.choice-button:hover {
+    background-color: #e9ecef;
+    transform: none;
+    box-shadow: none;
+}
+
+.choice-button.correct {
+    background-color: #28a745;
+    color: white;
+}
+
+.choice-button.incorrect {
+    background-color: #dc3545;
+    color: white;
+}
+
+.hidden {
+    display: none;
+}
+
+#current-question-info {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #6c757d;
+}
+
+.record-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e2e6ea;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
