@@ -1,172 +1,43 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>テストページ</title>
-  <style>
-    :root{
-      --bg: #0f1724;
-      --card: #0b1220;
-      --accent: #7c3aed;
-      --muted: #9aa4b2;
-      --glass: rgba(255,255,255,0.03);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{
-      font-family: Inter, system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-      background: radial-gradient(1000px 500px at 10% 10%, rgba(124,58,237,0.08), transparent), var(--bg);
-      color:#e6eef6;
-      -webkit-font-smoothing:antialiased;
-      padding:24px;
-    }
-    .wrap{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
-    header{display:flex;gap:12px;align-items:center}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--card));padding:16px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
-    nav .logo{width:44px;height:44px;border-radius:8px;display:inline-grid;place-items:center;background:linear-gradient(135deg,var(--accent),#06b6d4);font-weight:700;color:#fff}.controls{display:flex;flex-direction:column;gap:8px}
-.controls button{appearance:none;border:0;padding:10px 12px;border-radius:8px;background:var(--glass);color:var(--muted);cursor:pointer}
-.controls button:hover{color:#fff;transform:translateY(-2px)}
-
-main{min-height:70vh;border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));}
-.canvas-wrap{position:relative;height:320px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#021026 0%, #041225 100%);}
-canvas{display:block;width:100%;height:100%}
-
-.hidden{display:none}
-
-footer{margin-top:12px;color:var(--muted);font-size:13px}
-
-/* intentionally convoluted animation */
-@keyframes wobble{0%{transform:translateY(0)}25%{transform:translateY(-4px)}50%{transform:translateY(0)}75%{transform:translateY(3px)}100%{transform:translateY(0)}}
-.wobble{animation:wobble 3s ease-in-out infinite}
-
-/* responsive */
-@media (max-width:880px){.wrap{grid-template-columns:1fr;}}
-
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本の戦乱クイズ</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="wrap">
-    <aside class="card" aria-label="サイドパネル">
-      <header>
-        <div class="logo" title="ComplexAF">CF</div>
-        <div>
-          <div style="font-weight:700">テスト</div>
-          <div style="font-size:12px;color:var(--muted)">テストページ</div>
+    <div class="container">
+        <h1>日本の戦乱クイズ</h1>
+
+        <div id="record-container" class="record-container">
+            <h3>連続正解記録</h3>
+            <p id="streak-count">現在の連続正解記録: 0</p>
+            <p id="best-streak-count">過去最高の記録: 0</p>
         </div>
-      </header><div style="height:12px"></div>
 
-  <section class="controls">
-    <button id="btn-chaos">テストページ</button>
-    <button id="btn-twist">テストページ</button>
-    <button id="btn-reveal">テストページ</button>
-  </section>
+        <div id="level-selection-container">
+            <h2>難易度を選んでください</h2>
+            <div class="level-buttons">
+                <button class="level-button" data-level="easy">初級 (10問)</button>
+                <button class="level-button" data-level="medium">中級 (15問)</button>
+                <button class="level-button" data-level="hard">上級 (20問)</button>
+            </div>
+        </div>
 
-  <div style="height:12px"></div>
+        <div id="quiz-container" class="hidden">
+            <h2 id="question-text"></h2>
+            <div id="choices-container" class="choices-container"></div>
+            <p id="current-question-info"></p>
+        </div>
 
-  <div class="card" style="padding:12px" id="meta">
-    <small style="color:var(--muted)">状態: <span id="state">静止</span></small>
-    <div style="height:8px"></div>
-    <small style="color:var(--muted)">テストページ</small>
-  </div>
-</aside>
-
-<main class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <h2 style="margin:0">テストページ</h2>
-    <div style="color:var(--muted);font-size:13px">テストページ: <strong id="level">99</strong></div>
-  </div>
-
-  <div style="height:12px"></div>
-
-  <div class="canvas-wrap card">
-    <canvas id="c"></canvas>
-    <div id="overlay" style="position:absolute;left:14px;top:14px;color:rgba(255,255,255,0.9);font-weight:600">仕掛けあり</div>
-  </div>
-
-  <div style="height:12px"></div>
-
-  <div id="log" style="font-family:monospace;background:rgba(0,0,0,0.25);padding:8px;border-radius:6px;height:120px;overflow:auto;font-size:13px"></div>
-
-  <footer>テストページ</footer>
-</main>
-
-  </div>  <script type="module">
-  // ------------------------------------------------------------------
-  // WARNING: intentionally convoluted, but safe. Don't run with eyelids closed.
-  // Features:
-  // - Web Component (x-spaghetti)
-  // - Shadow DOM + CSS variables
-  // - Reactive state via Proxy
-  // - Canvas particle system
-  // - Generator + async chains + Promises
-  // - Easter egg (Konami + "iddqd") and console-only secret
-  // ------------------------------------------------------------------
-
-  const $ = s => document.querySelector(s);
-  const log = (t)=>{const el=$('#log');el.insertAdjacentHTML('beforeend',`<div>↳ ${t}</div>`);el.scrollTop=el.scrollHeight}
-
-  // --- tiny reactive state using Proxy ---
-  const makeState = (initial={chaos:false,level:99})=>{
-    const handler={set(obj,prop,val){obj[prop]=val;window.dispatchEvent(new CustomEvent('statechange',{detail:{prop,val}})); return true}}
-    return new Proxy(Object.assign({},initial),handler)
-  }
-  const state = window.__state = makeState();
-
-  // --- Web Component: x-spaghetti (nested madness) ---
-  class XSpaghetti extends HTMLElement{
-    constructor(){
-      super();
-      const s = this.attachShadow({mode:'open'});
-      s.innerHTML = `
-        <style>
-          :host{display:block}
-          .box{padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter: blur(4px)}
-          .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(124,58,237,0.2);color:#fff;font-weight:600}
-        </style><div class="box">
-      <slot name="title"><span class="badge">SPG</span></slot>
-      <div id='inner' style='margin-top:8px;font-size:13px;color:var(--muted)'>内部コンポーネント</div>
+        <div id="result-container" class="hidden">
+            <h2 id="result-text"></h2>
+            <p id="correct-count"></p>
+            <button id="restart-button">もう一度プレイ</button>
+        </div>
     </div>
-  `;
-  this._inner = s.getElementById('inner');
-}
-connectedCallback(){
-  this._inner.textContent = '接続完了 — だが安心するな';
-}
-
-} customElements.define('x-spaghetti', XSpaghetti);
-
-// inject component into page but keep it hidden — just to be needlessly complex const sp = document.createElement('x-spaghetti'); sp.setAttribute('style','display:block;margin-top:12px'); sp.innerHTML = <span slot="title">隠しコンポーネント</span>; document.body.appendChild(sp);
-
-// --- canvas particle system (compact but nasty) --- const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d'); let W=canvas.width=canvas.clientWidth; let H=canvas.height=canvas.clientHeight; window.addEventListener('resize',()=>{W=canvas.width=canvas.clientWidth;H=canvas.height=canvas.clientHeight})
-
-const rnd=(a=1)=>Math.random()*a; const particles = Array.from({length:60},(_,i)=>({ x:rnd(W),y:rnd(H),vx: (rnd()-0.5)*0.6, vy:(rnd()-0.5)*0.6, r:1+rnd(3), life: Math.floor(60+rnd(240)) }))
-
-function drawParticles(){ ctx.clearRect(0,0,W,H); for(let p of particles){ p.x += p.vx; p.y += p.vy; p.life--; if(p.x<0||p.x>W) p.vx = -1; if(p.y<0||p.y>H) p.vy = -1; if(p.life<0){ p.x=rnd(W); p.y=rnd(H); p.life=120+rnd(600)|0 } ctx.beginPath(); const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r8); g.addColorStop(0, 'rgba(124,58,237,0.9)'); g.addColorStop(1, 'rgba(124,58,237,0)'); ctx.fillStyle=g; ctx.arc(p.x,p.y,p.r,0,Math.PI2); ctx.fill(); } }
-
-let rafid; function loop(){ drawParticles(); if(state.chaos) chaotic(); rafid=requestAnimationFrame(loop) } function chaotic(){ // small distortion when chaos enabled ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.fillStyle='rgba(124,58,237,0.02)'; ctx.fillRect(0,0,W,H); ctx.restore(); } loop();
-
-// --- deliberately confusing async/generator chain --- function *genSeed(n){ for(let i=0;i<n;i++) yield Math.floor(Math.random()*256) } async function asyncFuse(){ let acc = 0; for(let v of genSeed(6)){ acc ^= v; await new Promise(r=>setTimeout(r, 20)); } return acc }
-
-// tiny obfuscator (safe) function obf(s){ return [...s].map((c,i)=>String.fromCharCode(c.charCodeAt(0) ^ (i*13 & 0xFF))).join('') }
-
-// --- event wiring --- $('#btn-chaos').addEventListener('click',()=>{ state.chaos = !state.chaos; $('#state').textContent = state.chaos ? '混沌' : '静止'; log('チャオス: '+state.chaos) }) $('#btn-twist').addEventListener('click',async()=>{ $('#level').textContent = Math.floor(Math.random()*100); log('ツイスト発動 — レベル変動'); const r = await asyncFuse(); log('内部シード: '+r.toString(16)); })
-
-$('#btn-reveal').addEventListener('click',()=>{ const el = document.getElementById('overlay'); el.textContent = el.textContent.includes('あり') ? '仕掛け表示中' : '仕掛けあり'; el.classList.toggle('wobble'); log('裏表示トグル'); })
-
-// react-ish updater via state change events window.addEventListener('statechange', (e)=>{ if(e.detail.prop==='level') $('#level').textContent = e.detail.val })
-
-// --- Konami + 'iddqd' easter egg detector (intentionally obfuscated logic) --- (function(){ const combo = [38,38,40,40,37,39,37,39,66,65]; // konami const secret = 'iddqd'; let buf = []; let chars = ''; window.addEventListener('keydown', (ev)=>{ buf.push(ev.keyCode); if(buf.length>combo.length) buf.shift(); chars += ev.key || ''; if(buf.join(',')===combo.join(',')){ state.chaos = true; $('#state').textContent='混沌(コナミ)'; log('コナミ達成 — カオス起動'); console.info('%cあんた本当に…コナミ？','color:#7c3aed;font-weight:700'); } if(chars.toLowerCase().includes(secret)){ $('#log').insertAdjacentHTML('beforeend',<div style="color:#ffd966">ID DQD モード解除 — 裏コンソールが開きました</div>); console.info('秘密: %s', obf('秘密のメッセージ: よくやった')); // intentionally obfuscated console output chars = ''; } }) })()
-
-// --- Proxy-based API that pretends to be complex but is tiny --- const api = new Proxy({}, { get(_,k){ if(k==='status') return ()=>({chaos:state.chaos,level:document.getElementById('level').textContent}); if(k==='seed') return asyncFuse; return ()=>{ console.warn('unknown',k) } } }) window.__api = api;
-
-// --- console-only secret (useful for debugging) --- console.log('%cデバッグヒント: window.__api.status() で状態を確認できる','color:#9ad3bc;font-weight:600');
-
-// --- petty right-click deterrent (harmless) --- document.addEventListener('contextmenu', (e)=>{ const {clientX:x,clientY:y} = e; // if you right-click in the top-left corner, reveal a secret if(x<80 && y<80){ e.preventDefault(); alert('そこは隠しスイッチだ。おめでとう。'); log('隠しスイッチを右クリックで発見') } })
-
-// --- final noisy flourish --- (async function init(){ log('初期化中 '); const s = await api.seed(); log('初期シード: '+(s&0xff).toString(16)); // delay to look fancy await new Promise(r=>setTimeout(r,80)); log('準備完了'); })();
-
-  </script>
+    <script src="main.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
