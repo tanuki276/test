@@ -1,336 +1,380 @@
 const LIST = document.getElementById('list');
 const Q = document.getElementById('q');
-const selectedItems = new Set();
 const EXPORT_BUTTON = document.getElementById('export');
 const TAG_BUTTONS_CONTAINER = document.getElementById('tag-buttons');
 const COMPARE_MODAL = document.getElementById('compare-modal');
 const COMPARE_BTN = document.getElementById('compare-btn');
 const CLOSE_BTN = document.querySelector('.close-btn');
 const COMPARE_TABLE_CONTAINER = document.getElementById('compare-table-container');
+const RESULT_COUNT = document.getElementById('result-count');
+const SELECTION_COUNT = document.getElementById('selection-count');
+const CLEAR_SEARCH = document.getElementById('clear-search');
+const FOOTER_YEAR = document.getElementById('footer-year');
 
+const selectedItems = new Set();
+const maps = new Map();
 let activeTag = null;
-let maps = {};
 
-function loadSaved(){
-  try{ const raw = localStorage.getItem('wars_notes_v11'); if(!raw) return {}; return JSON.parse(raw); }catch(e){return {}} }
-function saveAll(data){ localStorage.setItem('wars_notes_v11', JSON.stringify(data)); }
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem('wars_notes_v11');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAll(data) {
+  try {
+    localStorage.setItem('wars_notes_v11', JSON.stringify(data));
+  } catch (error) {
+    console.warn('編集内容を保存できませんでした。', error);
+  }
+}
+
 const saved = loadSaved();
 
-function renderTags() {
-  // WARS_DATAが未定義の場合は処理をスキップ
-  if (typeof WARS_DATA === 'undefined') {
-    return;
-  }
-  
-  const allTags = WARS_DATA.reduce((acc, it) => {
-    if (it.tags) {
-      it.tags.forEach(tag => acc.add(tag));
-    }
-    return acc;
-  }, new Set());
+function updateSelectionStatus() {
+  const count = selectedItems.size;
+  SELECTION_COUNT.textContent = count > 0 ? `${count}件を選択中` : '項目を選択すると比較できます';
+  COMPARE_BTN.textContent = count > 0 ? `選択した${count}件を比較` : '選択項目を比較';
+}
 
-  TAG_BUTTONS_CONTAINER.innerHTML = '';
+function renderTags() {
+  if (!Array.isArray(WARS_DATA)) return;
+
+  const allTags = [...new Set(WARS_DATA.flatMap(item => item.tags || []))].sort((a, b) => a.localeCompare(b, 'ja'));
+  TAG_BUTTONS_CONTAINER.replaceChildren();
+
   allTags.forEach(tag => {
     const button = document.createElement('button');
+    button.type = 'button';
     button.textContent = tag;
-    if (tag === activeTag) {
-      button.classList.add('active');
-    }
+    button.classList.toggle('active', tag === activeTag);
+    button.setAttribute('aria-pressed', String(tag === activeTag));
     button.addEventListener('click', () => {
-      if (activeTag === tag) {
-        activeTag = null;
-      } else {
-        activeTag = tag;
-      }
+      activeTag = activeTag === tag ? null : tag;
       renderTags();
-      render();
+      render(Q.value);
     });
     TAG_BUTTONS_CONTAINER.appendChild(button);
   });
 }
 
-function render(filter=''){
-  // WARS_DATAが未定義の場合は処理をスキップ
-  if (typeof WARS_DATA === 'undefined') {
+function matchesQuery(item, query) {
+  if (!query) return true;
+
+  const normalized = query.toLowerCase();
+  const searchable = [
+    item.title,
+    item.desc?.replace(/<[^>]+>/g, ' '),
+    item.year,
+    item.vs,
+    item.casualties,
+    ...(item.tags || []),
+    ...(item.keywords || []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (searchable.includes(normalized)) return true;
+
+  const year = Number.parseInt(normalized, 10);
+  return Number.isFinite(year) && year >= item.startYear && year <= item.endYear;
+}
+
+function render(filter = '') {
+  if (!Array.isArray(WARS_DATA)) {
+    LIST.innerHTML = '<div class="empty-state">データを読み込めませんでした。</div>';
     return;
   }
 
-  LIST.innerHTML='';
-  const f = filter.trim().toLowerCase();
+  maps.forEach(map => map.remove());
+  maps.clear();
+  LIST.replaceChildren();
 
-  const filteredItems = WARS_DATA.filter(it => {
-    const hasTag = activeTag ? (it.tags && it.tags.includes(activeTag)) : true;
-
-    const matchesSearch = f ? 
-        it.title.toLowerCase().includes(f) || 
-        (it.desc && it.desc.toLowerCase().includes(f)) ||
-        (it.keywords && it.keywords.some(keyword => keyword.toLowerCase().includes(f)))
-        : true;
-
-    const isNumberFilter = !isNaN(f) && f.length > 0;
-    const matchesYear = isNumberFilter ? (parseInt(f) >= it.startYear && parseInt(f) <= it.endYear) : false;
-
-    return hasTag && (matchesSearch || matchesYear);
+  const query = filter.trim();
+  const filteredItems = WARS_DATA.filter(item => {
+    const tagMatches = activeTag ? item.tags?.includes(activeTag) : true;
+    return tagMatches && matchesQuery(item, query);
   });
 
-  if(filteredItems.length===0){
-    LIST.innerHTML = '<div class="card">該当する項目がありません。</div>';
+  RESULT_COUNT.textContent = `${filteredItems.length}件 / 全${WARS_DATA.length}件を表示`;
+
+  if (filteredItems.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = '条件に合う項目がありません。検索語やタグを変えてみてください。';
+    LIST.appendChild(empty);
     return;
   }
 
-  filteredItems.forEach(it=>{
-    const card = document.createElement('div');
-    card.className='card';
-    if(selectedItems.has(it.id)){
+  filteredItems.forEach(item => LIST.appendChild(createCard(item)));
+}
+
+function createCard(item) {
+  const card = document.createElement('article');
+  card.className = 'card';
+  card.dataset.itemId = item.id;
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', `${item.title}。クリックまたはEnterで選択`);
+  card.classList.toggle('selected', selectedItems.has(item.id));
+
+  const header = document.createElement('div');
+  header.className = 'card-header';
+
+  const titleGroup = document.createElement('div');
+  const year = document.createElement('div');
+  year.className = 'year';
+  year.textContent = item.year;
+
+  const title = document.createElement('h3');
+  title.textContent = item.title;
+  title.title = 'クリックすると説明を編集できます';
+
+  titleGroup.append(year, title);
+  header.appendChild(titleGroup);
+
+  const meta = document.createElement('p');
+  meta.className = 'meta';
+  meta.textContent = '説明は編集可能・自動保存';
+
+  const details = document.createElement('div');
+  details.className = 'details';
+  details.dataset.id = item.id;
+  const rawContent = saved[item.id]?.desc ?? item.desc ?? '';
+  details.innerHTML = DOMPurify.sanitize(rawContent);
+
+  title.addEventListener('click', event => {
+    event.stopPropagation();
+    details.contentEditable = 'true';
+    details.focus();
+  });
+
+  details.addEventListener('click', event => event.stopPropagation());
+  details.addEventListener('focusout', () => {
+    if (details.contentEditable !== 'true') return;
+    const cleanContent = DOMPurify.sanitize(details.innerHTML);
+    details.innerHTML = cleanContent;
+    saved[item.id] = { ...(saved[item.id] || {}), desc: cleanContent, title: item.title };
+    saveAll(saved);
+    details.removeAttribute('contenteditable');
+  });
+
+  details.addEventListener('keydown', event => {
+    if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) {
+      event.preventDefault();
+      details.blur();
+    }
+  });
+
+  const actions = createActions(item, card);
+  const mapContainer = document.createElement('div');
+  mapContainer.className = 'map-container';
+  mapContainer.id = `map-${item.id}`;
+  mapContainer.hidden = true;
+
+  card.append(header, meta, details, actions, mapContainer);
+
+  const toggleSelection = () => {
+    if (selectedItems.has(item.id)) {
+      selectedItems.delete(item.id);
+      card.classList.remove('selected');
+    } else {
+      selectedItems.add(item.id);
       card.classList.add('selected');
     }
+    updateSelectionStatus();
+  };
 
-    const h = document.createElement('h3');
-    h.textContent = it.title;
-    h.addEventListener('click', ()=>{
-      const d = card.querySelector('.details');
-      d.setAttribute('contenteditable','true');
-      d.focus();
-    });
+  card.addEventListener('click', event => {
+    if (event.target.closest('a, button, [contenteditable="true"]')) return;
+    toggleSelection();
+  });
 
-    const yearElem = document.createElement('div');
-    yearElem.className = 'year';
-    yearElem.textContent = it.year;
-
-    const meta = document.createElement('div');
-    meta.className='meta';
-    meta.textContent = '編集可能 — 保存は自動。';
-
-    const det = document.createElement('div');
-    det.className='details';
-    det.dataset.id = it.id;
-    const rawContent = (saved[it.id] && saved[it.id].desc) ? saved[it.id].desc : it.desc;
-    det.innerHTML = DOMPurify.sanitize(rawContent);
-
-    det.addEventListener('focusout', ()=>{
-      const id = det.dataset.id;
-      const content = det.innerHTML;
-      saved[id] = saved[id] || {};
-      saved[id].desc = DOMPurify.sanitize(content);
-      saved[id].title = it.title;
-      saveAll(saved);
-      det.removeAttribute('contenteditable');
-    });
-
-    det.addEventListener('keydown',(e)=>{
-      if(e.key === 'Escape') {
-        det.blur();
-      }
-      if(e.key === 'Enter' && (e.ctrlKey||e.metaKey)) {
-        e.preventDefault();
-        det.blur();
-      }
-    });
-
-    const actions = document.createElement('div');
-    actions.className='actions';
-
-    const wikiLink = document.createElement('a');
-    wikiLink.href = `https://ja.wikipedia.org/wiki/${encodeURIComponent(it.wiki)}`;
-    wikiLink.textContent = 'Wikipediaで詳細を見る';
-    wikiLink.target = '_blank';
-    wikiLink.className = 'wiki-link';
-
-    const dataBtn = document.createElement('button');
-    dataBtn.textContent = 'データを見る';
-    dataBtn.addEventListener('click', () => {
-      renderCompareTable([it]);
-      COMPARE_MODAL.style.display = 'flex';
-    });
-    actions.appendChild(dataBtn);
-
-    if (it.lat && it.lng) {
-      const mapBtn = document.createElement('button');
-      mapBtn.textContent = '地図を見る';
-      mapBtn.addEventListener('click', () => {
-        const mapContainer = card.querySelector('.map-container');
-        if (mapContainer.style.display === 'block') {
-          mapContainer.style.display = 'none';
-          mapBtn.textContent = '地図を見る';
-          if (maps[it.id]) {
-            maps[it.id].remove();
-            delete maps[it.id];
-          }
-        } else {
-          mapContainer.style.display = 'block';
-          mapBtn.textContent = '地図を閉じる';
-          if (!maps[it.id]) {
-            const map = L.map(mapContainer).setView([it.lat, it.lng], it.zoom || 8);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              maxZoom: 19,
-              attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-
-            L.marker([it.lat, it.lng]).addTo(map)
-              .bindPopup(it.title)
-              .openPopup();
-            
-            maps[it.id] = map;
-            setTimeout(() => { map.invalidateSize(); }, 100);
-          }
-        }
-      });
-      actions.appendChild(mapBtn);
+  card.addEventListener('keydown', event => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target === card) {
+      event.preventDefault();
+      toggleSelection();
     }
+  });
 
-    actions.appendChild(wikiLink);
+  return card;
+}
 
-    if (it.relations && it.relations.length > 0) {
-      it.relations.forEach(rel => {
-        const relBtn = document.createElement('button');
-        relBtn.textContent = rel.text;
-        relBtn.className = 'relation-link';
-        relBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const targetCard = document.querySelector(`.card:has([data-id='${rel.targetId}'])`);
-          if (targetCard) {
-            window.scrollTo({
-              top: targetCard.offsetTop - 20,
-              behavior: 'smooth'
-            });
-            targetCard.classList.add('highlight');
-            setTimeout(() => targetCard.classList.remove('highlight'), 2000);
-          }
-        });
-        actions.appendChild(relBtn);
-      });
-    }
+function createActions(item, card) {
+  const actions = document.createElement('div');
+  actions.className = 'actions';
 
-    const mapContainer = document.createElement('div');
-    mapContainer.className = 'map-container';
-    mapContainer.id = `map-${it.id}`;
-    mapContainer.style.display = 'none';
+  const dataBtn = document.createElement('button');
+  dataBtn.type = 'button';
+  dataBtn.textContent = 'データを見る';
+  dataBtn.addEventListener('click', () => openCompare([item]));
+  actions.appendChild(dataBtn);
 
-    card.appendChild(yearElem);
-    card.appendChild(h);
-    card.appendChild(meta);
-    card.appendChild(det);
-    card.appendChild(actions);
-    card.appendChild(mapContainer);
+  if (item.lat && item.lng) {
+    const mapBtn = document.createElement('button');
+    mapBtn.type = 'button';
+    mapBtn.textContent = '地図を見る';
+    mapBtn.setAttribute('aria-expanded', 'false');
 
-    card.addEventListener('click', (e) => {
-      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('.actions')) {
+    mapBtn.addEventListener('click', () => {
+      const container = card.querySelector('.map-container');
+      const opening = container.hidden;
+      container.hidden = !opening;
+      mapBtn.textContent = opening ? '地図を閉じる' : '地図を見る';
+      mapBtn.setAttribute('aria-expanded', String(opening));
+
+      if (!opening) {
+        maps.get(item.id)?.remove();
+        maps.delete(item.id);
         return;
       }
-      e.stopPropagation();
 
-      const isSelected = selectedItems.has(it.id);
-      if (isSelected) {
-        selectedItems.delete(it.id);
-        card.classList.remove('selected');
-      } else {
-        selectedItems.add(it.id);
-        card.classList.add('selected');
+      if (!maps.has(item.id)) {
+        const map = L.map(container).setView([item.lat, item.lng], item.zoom || 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors',
+        }).addTo(map);
+        L.marker([item.lat, item.lng]).addTo(map).bindPopup(item.title).openPopup();
+        maps.set(item.id, map);
+        requestAnimationFrame(() => map.invalidateSize());
       }
     });
+    actions.appendChild(mapBtn);
+  }
 
-    LIST.appendChild(card);
+  const wikiLink = document.createElement('a');
+  wikiLink.href = `https://ja.wikipedia.org/wiki/${encodeURIComponent(item.wiki)}`;
+  wikiLink.textContent = 'Wikipediaで確認';
+  wikiLink.target = '_blank';
+  wikiLink.rel = 'noopener noreferrer';
+  wikiLink.className = 'wiki-link';
+  actions.appendChild(wikiLink);
+
+  (item.relations || []).forEach(relation => {
+    const relBtn = document.createElement('button');
+    relBtn.type = 'button';
+    relBtn.textContent = relation.text;
+    relBtn.className = 'relation-link';
+    relBtn.addEventListener('click', () => {
+      const target = document.querySelector(`.card[data-item-id="${CSS.escape(String(relation.targetId))}"]`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus({ preventScroll: true });
+    });
+    actions.appendChild(relBtn);
   });
+
+  return actions;
+}
+
+function openCompare(items) {
+  renderCompareTable(items);
+  if (typeof COMPARE_MODAL.showModal === 'function') {
+    COMPARE_MODAL.showModal();
+  } else {
+    COMPARE_MODAL.setAttribute('open', '');
+  }
+}
+
+function closeCompare() {
+  if (COMPARE_MODAL.open && typeof COMPARE_MODAL.close === 'function') {
+    COMPARE_MODAL.close();
+  } else {
+    COMPARE_MODAL.removeAttribute('open');
+  }
+}
+
+function renderCompareTable(items) {
+  COMPARE_TABLE_CONTAINER.replaceChildren();
+
+  if (!items.length) {
+    const message = document.createElement('p');
+    message.textContent = '選択された項目がありません。';
+    COMPARE_TABLE_CONTAINER.appendChild(message);
+    return;
+  }
+
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const tbody = document.createElement('tbody');
+  const headerRow = document.createElement('tr');
+
+  ['項目名', '期間', '相手国・勢力', '死傷者数（日本側）'].forEach(label => {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+
+  items.forEach(item => {
+    const row = document.createElement('tr');
+    [item.title, item.year, item.vs || '不明', item.casualties || '不明'].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      row.appendChild(td);
+    });
+    tbody.appendChild(row);
+  });
+
+  table.append(thead, tbody);
+  COMPARE_TABLE_CONTAINER.appendChild(table);
 }
 
 COMPARE_BTN.addEventListener('click', () => {
-    if (selectedItems.size === 0) {
-        alert('比較する項目を選択してください。');
-        return;
-    }
-    const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
-    renderCompareTable(selectedData);
-    COMPARE_MODAL.style.display = 'flex';
+  if (!selectedItems.size) {
+    alert('比較する項目を選択してください。');
+    return;
+  }
+  openCompare(WARS_DATA.filter(item => selectedItems.has(item.id)));
 });
 
-CLOSE_BTN.addEventListener('click', () => {
-    COMPARE_MODAL.style.display = 'none';
+CLOSE_BTN.addEventListener('click', closeCompare);
+COMPARE_MODAL.addEventListener('click', event => {
+  if (event.target === COMPARE_MODAL) closeCompare();
 });
 
-window.addEventListener('click', (e) => {
-    if (e.target === COMPARE_MODAL) {
-        COMPARE_MODAL.style.display = 'none';
-    }
+Q.addEventListener('input', () => render(Q.value));
+CLEAR_SEARCH.addEventListener('click', () => {
+  Q.value = '';
+  activeTag = null;
+  renderTags();
+  render();
+  Q.focus();
 });
 
-function renderCompareTable(items) {
-    if (items.length === 0) {
-        COMPARE_TABLE_CONTAINER.innerHTML = '<p>選択された項目がありません。</p>';
-        return;
-    }
+document.getElementById('print').addEventListener('click', () => window.print());
 
-    const table = document.createElement('table');
-    const thead = document.createElement('thead');
-    const tbody = document.createElement('tbody');
+EXPORT_BUTTON.addEventListener('click', () => {
+  if (!selectedItems.size) {
+    alert('エクスポートする項目を選択してください。');
+    return;
+  }
 
-    const headerRow = document.createElement('tr');
-    headerRow.innerHTML = `
-        <th>項目名</th>
-        <th>期間</th>
-        <th>相手国・勢力</th>
-        <th>死傷者数 (日本側)</th>
-    `;
-    thead.appendChild(headerRow);
+  const selectedData = WARS_DATA.filter(item => selectedItems.has(item.id));
+  const out = selectedData.map(item => ({
+    id: item.id,
+    title: item.title,
+    year: item.year,
+    desc: DOMPurify.sanitize(saved[item.id]?.desc ?? item.desc ?? '').replace(/<[^>]+>/g, '').trim(),
+  }));
 
-    items.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${DOMPurify.sanitize(item.title)}</td>
-            <td>${DOMPurify.sanitize(item.year)}</td>
-            <td>${DOMPurify.sanitize(item.vs || '不明')}</td>
-            <td>${DOMPurify.sanitize(item.casualties || '不明')}</td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    COMPARE_TABLE_CONTAINER.innerHTML = '';
-    COMPARE_TABLE_CONTAINER.appendChild(table);
-}
-
-Q.addEventListener('input', ()=> render(Q.value));
-
-document.getElementById('print').addEventListener('click', ()=> window.print());
-
-EXPORT_BUTTON.addEventListener('click', ()=>{
-    if(selectedItems.size === 0) {
-        alert("エクスポートする項目を選択してください。");
-        return;
-    }
-
-    const selectedData = WARS_DATA.filter(it => selectedItems.has(it.id));
-    const out = selectedData.map(it => {
-        const savedContent = saved[it.id] ? saved[it.id].desc : it.desc;
-        const plainText = DOMPurify.sanitize(savedContent).replace(/<[^>]+>/g, '').trim();
-        return {
-            id: it.id,
-            title: it.title,
-            year: it.year,
-            desc: plainText
-        };
-    });
-
-    const blob = new Blob([JSON.stringify(out, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'selected_wars_export.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'selected_wars_export.json';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 });
 
-// DOMContentLoadedイベントリスナーを追加
-// DOMが完全に読み込まれ、スクリプトが利用可能になった後で初期表示を実行
-window.addEventListener('DOMContentLoaded', (event) => {
-    // WARS_DATAが利用可能か確認（script.jsの読み込み待ち）
-    if (typeof WARS_DATA !== 'undefined') {
-        renderTags();
-        render();
-    } else {
-        // もしWARS_DATAが外部ファイルで非同期に読み込まれる場合は、その読み込み完了を待つ処理が必要
-        // 例: fetch() APIを使用
-    }
-});
+FOOTER_YEAR.textContent = new Date().getFullYear();
+renderTags();
+render();
+updateSelectionStatus();
