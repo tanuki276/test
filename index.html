@@ -3,46 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="日本の主要な戦い・事件・紛争を時系列で検索、比較、地図表示できる年表サイトです。">
+    <meta name="color-scheme" content="light dark">
     <title>日本の戦乱年表</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
 <body>
+<a class="skip-link" href="#list">年表一覧へスキップ</a>
 
-<header>
-    <h1>日本の戦乱年表</h1>
-    <p>過去から現代までの主要な戦い、事件、紛争を時系列でまとめています。</p>
+<header class="site-header">
+    <div class="header-inner">
+        <p class="eyebrow">HISTORY TIMELINE</p>
+        <h1>日本の戦乱年表</h1>
+        <p class="lead">過去から現代までの主要な戦い、事件、紛争を検索・比較しながらたどれます。</p>
+    </div>
 </header>
 
 <main>
-    <section id="search-section">
-        <input type="text" id="q" placeholder="キーワードや年号で検索">
-        <button id="export">選択項目をJSONでエクスポート</button>
-        <button id="print">印刷</button>
-        <button id="compare-btn">比較する</button>
+    <section id="search-section" class="control-panel" aria-label="年表の検索と操作">
+        <div class="search-row">
+            <div class="search-field">
+                <label for="q">キーワード・年号で検索</label>
+                <div class="search-input-row">
+                    <input type="search" id="q" placeholder="例：元寇、1600、内戦" autocomplete="off" aria-describedby="search-help">
+                    <button id="clear-search" class="button secondary" type="button">クリア</button>
+                </div>
+                <p id="search-help" class="helper-text">タイトル・説明・タグ・相手勢力・年号から絞り込めます。</p>
+            </div>
+        </div>
+
+        <div class="toolbar" aria-label="年表の操作">
+            <button id="compare-btn" class="button primary" type="button">選択項目を比較</button>
+            <button id="export" class="button secondary" type="button">選択項目をJSONで保存</button>
+            <button id="print" class="button secondary" type="button">印刷</button>
+        </div>
     </section>
 
-    <div id="tag-buttons"></div>
+    <section class="status-panel" aria-label="表示状況">
+        <p id="result-count" role="status" aria-live="polite"></p>
+        <p id="selection-count" aria-live="polite"></p>
+    </section>
 
-    <section id="list"></section>
+    <nav id="tag-buttons" aria-label="タグで絞り込み"></nav>
+
+    <section id="list" class="timeline-list" aria-label="戦乱年表"></section>
 </main>
 
 <footer>
-    <p>© 2024 日本の戦乱年表</p>
+    <p>© <span id="footer-year"></span> 日本の戦乱年表</p>
+    <p class="footer-note">各項目の説明はブラウザ内に編集内容を保存できます。</p>
 </footer>
 
-<div id="compare-modal" class="modal">
+<dialog id="compare-modal" class="modal" aria-labelledby="compare-title">
     <div class="modal-content">
-        <span class="close-btn">&times;</span>
-        <h2>比較表</h2>
-        <div id="compare-table-container"></div>
+        <div class="modal-header">
+            <div>
+                <p class="eyebrow">COMPARE</p>
+                <h2 id="compare-title">比較表</h2>
+            </div>
+            <button class="close-btn" type="button" aria-label="比較表を閉じる">×</button>
+        </div>
+        <div id="compare-table-container" class="table-scroll"></div>
     </div>
-</div>
+</dialog>
 
-<script src="main.js"></script>
-<script src="script.js"></script>
-<script src="https://unpkg.com/dompurify@2.3.6/dist/purify.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+<script defer src="https://unpkg.com/dompurify@2.3.6/dist/purify.min.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script defer src="main.js"></script>
+<script defer src="script.js"></script>
 </body>
 </html>
